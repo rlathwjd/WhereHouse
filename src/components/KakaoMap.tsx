@@ -59,10 +59,12 @@ export default function KakaoMap() {
   const [selectedApprovalDate, setSelectedApprovalDate] = useState<string | null>(null);
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  
+  const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
+  const [selectedClusterRooms, setSelectedClusterRooms] = useState<Room[]>([]);
+  const [selectedClusterName, setSelectedClusterName] = useState<string | null>(null);
 
-  const [visibleRooms, setVisibleRooms] = useState<Room[]>([]);
   const [showRoomList, setShowRoomList] = useState(false);
-
   const [isBudgetTouched, setIsBudgetTouched] = useState(false);
   const [isRoomSizeTouched, setIsRoomSizeTouched] = useState(false);
 
@@ -77,13 +79,33 @@ export default function KakaoMap() {
     showRoomClusters,
   } = useKakaoRoomCluster({
     mapRef,
-    setVisibleRooms,
+    setFilteredRooms,
+    setSelectedClusterRooms,
+    setSelectedClusterName,
     setShowRoomList,
   });
 
   const isRoomMap = homeMode === "condition";
   const shouldShowMap = !showHomeOptions;
   const shouldShowRoomPanel = isRoomMap && showRoomList;
+
+  const hasAnyHomeFilter =
+    selectedRegions.length > 0 ||
+    selectedRoomTypes.length > 0 ||
+    selectedTradeTypes.length > 0 ||
+    selectedApprovalDate !== null ||
+    selectedRooms.length > 0 ||
+    isBudgetTouched ||
+    isRoomSizeTouched;
+
+  const displayRooms =
+    selectedClusterRooms.length > 0 ? selectedClusterRooms : filteredRooms;
+
+  const roomPanelTitle = selectedClusterName
+    ? selectedClusterName
+    : hasAnyHomeFilter
+      ? "조건에 맞는 매물"
+      : "전체 매물";
 
   const initializeMap = () => {
     window.kakao.maps.load(() => {
@@ -266,23 +288,51 @@ export default function KakaoMap() {
     setIsRoomSizeTouched(false);
 
     setOpenFilterMenu(null);
+
+    setSelectedClusterRooms([]);
+    setSelectedClusterName(null);
   };
 
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (homeMode !== "condition") return;
 
     const timer = setTimeout(() => {
-      mapRef.current?.relayout();
-    }, 150);
+      // 조건이 바뀌면 이전에 클릭했던 지역/클러스터 선택은 초기화
+      setSelectedClusterRooms([]);
+      setSelectedClusterName(null);
+
+      showRoomClusters({
+        regions: selectedRegions,
+        roomTypes: selectedRoomTypes,
+        tradeTypes: selectedTradeTypes,
+        maxDeposit: isBudgetTouched ? confirmedDeposit : null,
+        maxRent: isBudgetTouched ? confirmedRent : null,
+        minRoomSize: isRoomSizeTouched ? confirmedRoomSize : null,
+        rooms: selectedRooms,
+        approvalDate: selectedApprovalDate,
+      });
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [showRoomList, showHomeOptions, homeMode]);
+  }, [
+    homeMode,
+    selectedRegions,
+    selectedRoomTypes,
+    selectedTradeTypes,
+    confirmedDeposit,
+    confirmedRent,
+    confirmedRoomSize,
+    selectedRooms,
+    selectedApprovalDate,
+    isBudgetTouched,
+    isRoomSizeTouched,
+  ]);
 
   return (
     <>
       <Script
-        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false&libraries=services`}
+        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false&libraries=services,clusterer`} 
         strategy="afterInteractive"
         onLoad={initializeMap}
       />
@@ -316,6 +366,9 @@ export default function KakaoMap() {
               setKeyword("");
 
               clearRoomClusters();
+              setFilteredRooms([]);
+              setSelectedClusterRooms([]);
+              setSelectedClusterName(null);
 
               setHomeMode(null);
               setShowHomeFilters(false);
@@ -382,6 +435,10 @@ export default function KakaoMap() {
               type="button"
               onClick={() => {
                 resetHomeFilters();
+                setFilteredRooms([]);
+                setSelectedClusterRooms([]);
+                setSelectedClusterName(null);
+
                 setHomeMode(null);
                 setShowHomeOptions(true);
                 setShowHomeFilters(false);
@@ -440,8 +497,10 @@ export default function KakaoMap() {
         {/* 매물 정보 패널이 펼쳐진 상태 */}
         {isRoomMap && showRoomList && (
           <div className="absolute left-0 top-0 z-10 h-full w-[380px] border-r bg-white shadow-lg">
+            
             <RoomListPanel
-              visibleRooms={visibleRooms}
+              title={roomPanelTitle}
+              visibleRooms={displayRooms}
               loadingRoomId={loadingRoomId}
               roomSummaries={roomSummaries}
               getRoomSummary={getRoomSummary}

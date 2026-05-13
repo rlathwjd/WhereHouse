@@ -118,7 +118,7 @@ type Props = {
 
   selectedRegions: string[];
   setSelectedRegions: React.Dispatch<React.SetStateAction<string[]>>;
-
+  
   selectedRoomTypes: string[];
   setSelectedRoomTypes: React.Dispatch<React.SetStateAction<string[]>>;
 
@@ -234,6 +234,46 @@ export default function HomeFilterPanel({
     return `${value.toLocaleString()}만원`;
   };
   
+  const activeRegionItems =
+    REGION_GROUPS.find((group) => group.key === activeRegionGroup)?.items ?? [];
+
+  const isAllActiveRegionsSelected =
+    activeRegionItems.length > 0 &&
+    activeRegionItems.every((item) => selectedRegions.includes(item));
+
+  const toggleAllActiveRegions = () => {
+    setSelectedRegions((prev) => {
+      if (isAllActiveRegionsSelected) {
+        return prev.filter((item) => !activeRegionItems.includes(item));
+      }
+
+      return Array.from(new Set([...prev, ...activeRegionItems]));
+    });
+  };
+
+  const getRegionConditionText = () => {
+    const result: string[] = [];
+    const partialRegions: string[] = [];
+
+    REGION_GROUPS.forEach((group) => {
+      const isAllSelected = group.items.every((item) =>
+        selectedRegions.includes(item)
+      );
+
+      if (isAllSelected) {
+        result.push(`${group.label} 전체`);
+        return;
+      }
+
+      group.items.forEach((item) => {
+        if (selectedRegions.includes(item)) {
+          partialRegions.push(item);
+        }
+      });
+    });
+
+    return [...result, ...partialRegions].join(", ");
+  };
 
   return (
     <div>
@@ -267,7 +307,17 @@ export default function HomeFilterPanel({
         <div className="mt-4 rounded-2xl border bg-gray-50 p-5">
           {openFilterMenu === "region" && (
             <>
-              <p className="mb-4 font-bold">지역</p>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <p className="font-bold">지역</p>
+
+                <button
+                  type="button"
+                  onClick={toggleAllActiveRegions}
+                  className="rounded-full border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-gray-50"
+                >
+                  {isAllActiveRegionsSelected ? "전체 해제" : "전체 선택"}
+                </button>
+              </div>
 
               <div className="rounded-lg border border-gray-200 bg-white p-4">
                 <div className="flex flex-wrap gap-2">
@@ -279,7 +329,6 @@ export default function HomeFilterPanel({
                         key={group.key}
                         type="button"
                         onClick={() => setActiveRegionGroup(group.key)}
-                        /* 대분류 영역: 서울 / 경기 / 인천 */
                         className={`rounded-full border px-4 py-2 text-base font-semibold transition ${isActive
                             ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
                             : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
@@ -293,11 +342,19 @@ export default function HomeFilterPanel({
 
                 <div className="my-4 border-t border-gray-200" />
 
-                {/* 선택된 대분류에 해당하는 소분류 지역 목록 */}
+                <div className="mb-3 flex items-center gap-2">
+                  <p className="text-sm font-bold text-slate-700">
+                    {REGION_GROUPS.find((group) => group.key === activeRegionGroup)?.label} 지역
+                  </p>
+
+                  <span className="text-sm font-semibold text-slate-500">
+                    {activeRegionItems.filter((item) => selectedRegions.includes(item)).length}
+                    /{activeRegionItems.length} 선택
+                  </span>
+                </div>
+
                 <div className="flex flex-wrap gap-2">
-                  {REGION_GROUPS.find(
-                    (group) => group.key === activeRegionGroup
-                  )?.items.map((item) => {
+                  {activeRegionItems.map((item) => {
                     const isSelected = selectedRegions.includes(item);
 
                     return (
@@ -515,7 +572,7 @@ export default function HomeFilterPanel({
         <div className="flex flex-wrap gap-2 text-sm">
           {selectedRegions.length > 0 && (
             <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
-              지역: {selectedRegions.join(", ")}
+              지역: {getRegionConditionText()}
             </span>
           )}
 
