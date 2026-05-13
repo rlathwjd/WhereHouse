@@ -1,4 +1,4 @@
-"use client"; 
+"use client";
 
 import KakaoMap from "../components/KakaoMap";
 import { Outfit } from "next/font/google";
@@ -9,10 +9,11 @@ const outfit = Outfit({
 
 export default function Home() {
   return (
-    <main className="mx-auto min-h-screen max-w-6xl bg-gray-50 p-10">
+    <main className="min-h-screen w-full bg-gray-50 px-10 py-8">
       <h1
         onClick={() => window.location.reload()}
-        className={`${outfit.className} text-5xl font-bold tracking-tight`}>
+        className={`${outfit.className} text-5xl font-bold tracking-tight`}
+      >
         WhereHouse
       </h1>
 
