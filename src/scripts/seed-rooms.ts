@@ -1,4 +1,7 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+
+dotenv.config({ path: ".env.local" });
+
 import fs from "fs";
 import { parse } from "csv-parse/sync";
 import { createClient } from "@supabase/supabase-js";
@@ -50,11 +53,22 @@ async function geocode(address: string) {
 
 async function main() {
     for (const room of rooms) {
+        const { data: existing } = await supabase
+            .from("rooms")
+            .select("id")
+            .eq("room_id", room.room_id)
+            .maybeSingle();
+
+        // 이미 존재하면 스킵
+        if (existing) {
+            continue;
+        }
+
         const coords = await geocode(room.location);
 
         if (!coords) continue;
 
-        await supabase.from("rooms").insert({
+        const { error } = await supabase.from("rooms").insert({
             room_id: room.room_id,
             location: room.location,
             deposit: Number(room.deposit),
@@ -65,7 +79,12 @@ async function main() {
             lng: coords.lng,
         });
 
-        console.log("삽입 완료:", room.location);
+        if (error) {
+            console.error("삽입 실패:", room.room_id, error.message);
+            continue;
+        }
+
+        console.log("신규 데이터 삽입 완료:", room.location);
     }
 }
 

@@ -1,5 +1,32 @@
 # WhereHouse
 
+## 개요
 사회초년생을 위한 생활권 기반 부동산 탐색 서비스
 
+
+## 주요 기능
+- 회사 위치 검색 및 설정
+- CSV 기반 매물 데이터 저장(supabase)
+- 카카오맵 기반 매물 시각화
+- 매물 조건 필터링
+
+## 기술 스택
+- Next.js, TypeScript
+- Supabase, PostreSQL
+- Kakao Map API, Kakao Local API
+
+## 환경 변수 설정
+- .env 파일
+- NEXT_PUBLIC_KAKAO_MAP_KEY="kakao_map_key" 입력
+- NEXT_PUBLIC_SUPABASE_URL="supabase_url" 입력
+- NEXT_PUBLIC_SUPABASE_ANON_KEY="supabase_anon_key" 입력
+- SUPABASE_SERVICE_ROLE_KEY="supabase_service_role_key" 입력
+- KAKAO_REST_API_KEY="kakao_rest_api_key" 입력
+
+## 실행 방법
+- npm install (패키지 설치)
+- npm run dev (개발 서버 실행)
+- npx tsx scr/scripts/seed_rooms.ts (매물 데이터 supabase에 저장)
+
+## 사이트 접속
 https://where-house-rouge.vercel.app/
