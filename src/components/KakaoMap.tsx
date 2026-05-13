@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { House } from "lucide-react";
 
 import type { Place, Room, FilterMenu, HomeMode } from "@/types/map";
@@ -60,9 +60,6 @@ export default function KakaoMap() {
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
 
-  const [panelWidth, setPanelWidth] = useState(360);
-  const isResizingRef = useRef(false);
-
   const [visibleRooms, setVisibleRooms] = useState<Room[]>([]);
   const [showRoomList, setShowRoomList] = useState(false);
 
@@ -99,6 +96,12 @@ export default function KakaoMap() {
       });
 
       mapRef.current = map;
+
+      // 지도 DOM 렌더링이 끝난 뒤 Kakao Map 크기 재계산
+      setTimeout(() => {
+        map.relayout();
+        map.setCenter(new window.kakao.maps.LatLng(37.5665, 126.978));
+      }, 300);
     });
   };
 
@@ -265,27 +268,16 @@ export default function KakaoMap() {
     setOpenFilterMenu(null);
   };
 
-  const startResize = () => {
-    isResizingRef.current = true;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizingRef.current) return;
+  useEffect(() => {
+    if (!mapRef.current) return;
 
-      const nextWidth = Math.min(Math.max(e.clientX - 40, 260), 620);
-      setPanelWidth(nextWidth);
+    const timer = setTimeout(() => {
       mapRef.current?.relayout();
-    };
+    }, 150);
 
-    const handleMouseUp = () => {
-      isResizingRef.current = false;
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-      setTimeout(() => mapRef.current?.relayout(), 100);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-  };
+    return () => clearTimeout(timer);
+  }, [showRoomList, showHomeOptions, homeMode]);
 
   return (
     <>
@@ -437,37 +429,50 @@ export default function KakaoMap() {
       )}
 
       <div
-        className={shouldShowMap ? "mt-8 flex gap-0" : "hidden"}
-        style={{ height: shouldShowMap ? "418px" : 0 }}
+        className={
+          shouldShowMap
+            ? "relative mt-8 h-[418px] overflow-hidden rounded-2xl border"
+            : "hidden"
+        }
       >
-        <div
-          className="shrink-0 overflow-hidden transition-all duration-100"
-          style={{
-            width: shouldShowRoomPanel ? `${panelWidth}px` : 0,
-          }}
-        >
-          {shouldShowRoomPanel && (
+        <div id="map" className="h-full w-full bg-gray-200" />
+
+        {/* 매물 정보 패널이 펼쳐진 상태 */}
+        {isRoomMap && showRoomList && (
+          <div className="absolute left-0 top-0 z-10 h-full w-[380px] border-r bg-white shadow-lg">
             <RoomListPanel
               visibleRooms={visibleRooms}
               loadingRoomId={loadingRoomId}
               roomSummaries={roomSummaries}
               getRoomSummary={getRoomSummary}
             />
-          )}
-        </div>
 
-        {shouldShowRoomPanel && (
-          <div className="flex h-full items-center px-2">
-            <div
-              onMouseDown={startResize}
-              className="h-16 w-1.5 cursor-col-resize rounded-full bg-gray-400/70 transition hover:bg-gray-600"
-            />
+            <button
+              type="button"
+              onClick={() => {
+                setShowRoomList(false);
+              }}
+              className="absolute -right-3 top-1/2 flex h-10 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-bold text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-900"
+              aria-label="매물 정보 접기"
+            >
+              {"<"}
+            </button>
           </div>
         )}
 
-        <div className="min-w-0 flex-1 overflow-hidden rounded-2xl border">
-          <div id="map" className="h-full w-full bg-gray-200" />
-        </div>
+        {/* 매물 정보 패널이 접힌 상태 */}
+        {isRoomMap && !showRoomList && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowRoomList(true);
+            }}
+            className="absolute left-0 top-1/2 z-10 flex h-12 w-7 -translate-y-1/2 items-center justify-center rounded-r-full border border-l-0 border-gray-200 bg-white text-xs font-bold text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-900"
+            aria-label="매물 정보 펼치기"
+          >
+            {">"}
+          </button>
+        )}
       </div>
     </>
   );

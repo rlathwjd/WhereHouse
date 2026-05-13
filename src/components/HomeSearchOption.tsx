@@ -24,7 +24,7 @@ export default function HomeSearchOption({
 
         if (mode === "condition") {
             setShowHomeFilters(true);
-            setShowRoomList(true);
+            setShowRoomList(false);
 
             setTimeout(() => {
                 mapRef.current?.relayout();
