@@ -28,13 +28,12 @@ export default function RoomListPanel({
             >
                 {visibleRooms.map((room) => (
                     <div key={room.room_id} className="rounded-xl border p-4">
-                        <p className="font-bold">{room.title || "매물 정보"}</p>
-
-                        <p className="mt-1 text-sm text-gray-500">{room.location}</p>
 
                         <p className="mt-2 font-semibold">
                             보증금 {room.deposit} / 월세 {room.rent}
                         </p>
+
+                        <p className="mt-1 text-sm text-gray-500">{room.location}</p>
 
                         <p className="mt-1 text-sm text-gray-500">
                             {room.room_type} · {room.size}㎡

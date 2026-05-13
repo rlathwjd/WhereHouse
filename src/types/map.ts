@@ -20,6 +20,7 @@ export type Room = {
 };
 
 export type FilterMenu =
+    | "region"
     | "roomType"
     | "trade"
     | "budget"
@@ -29,4 +30,4 @@ export type FilterMenu =
     | "rooms"
     | null;
 
-export type HomeMode = "condition" | "interest" | "recommend" | null;
+export type HomeMode = "condition" | "localReview" | null;

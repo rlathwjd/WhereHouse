@@ -1,8 +1,123 @@
+import { useState } from "react";
 import type { FilterMenu } from "@/types/map";
+
+const FILTER_MENUS: [FilterMenu, string][] = [
+  ["region", "지역"],
+  ["roomType", "매물 유형"],
+  ["trade", "거래 유형"],
+  ["budget", "가격"],
+  ["roomSize", "방 크기"],
+  ["rooms", "방 개수"],
+  ["approvalDate", "사용승인일"],
+];
+
+type RegionGroupKey = "seoul" | "gyeonggi" | "incheon";
+
+const REGION_GROUPS: {
+  key: RegionGroupKey;
+  label: string;
+  items: string[];
+}[] = [
+    {
+      key: "seoul",
+      label: "서울",
+      items: [
+        "강남구",
+        "강동구",
+        "강북구",
+        "강서구",
+        "관악구",
+        "광진구",
+        "구로구",
+        "금천구",
+        "노원구",
+        "도봉구",
+        "동대문구",
+        "동작구",
+        "마포구",
+        "서대문구",
+        "서초구",
+        "성동구",
+        "성북구",
+        "송파구",
+        "양천구",
+        "영등포구",
+        "용산구",
+        "은평구",
+        "종로구",
+        "중구",
+        "중랑구",
+      ],
+    },
+    {
+      key: "gyeonggi",
+      label: "경기",
+      items: [
+        "가평군",
+        "고양시",
+        "과천시",
+        "광명시",
+        "광주시",
+        "구리시",
+        "군포시",
+        "김포시",
+        "남양주시",
+        "동두천시",
+        "부천시",
+        "성남시",
+        "수원시",
+        "시흥시",
+        "안산시",
+        "안성시",
+        "안양시",
+        "양주시",
+        "양평군",
+        "여주시",
+        "연천군",
+        "오산시",
+        "용인시",
+        "의왕시",
+        "의정부시",
+        "이천시",
+        "파주시",
+        "평택시",
+        "포천시",
+        "하남시",
+        "화성시",
+      ],
+    },
+    {
+      key: "incheon",
+      label: "인천",
+      items: [
+        "강화군",
+        "계양구",
+        "남동구",
+        "동구",
+        "미추홀구",
+        "부평구",
+        "서구",
+        "연수구",
+        "옹진군",
+        "중구",
+      ],
+    },
+  ];
+
+const ROOM_TYPES = ["오피스텔", "원룸/투룸", "아파트", "쉐어하우스"];
+
+const TRADE_TYPES = ["월세", "전세", "매매"];
+
+const ROOM_COUNTS = ["원룸", "1.5룸", "투룸", "쓰리룸 이상"];
+
+const APPROVAL_DATES = ["5년 이내", "10년 이내", "15년 이내", "20년 이내"];
 
 type Props = {
   openFilterMenu: FilterMenu;
   toggleFilter: (menu: FilterMenu) => void;
+
+  selectedRegions: string[];
+  setSelectedRegions: React.Dispatch<React.SetStateAction<string[]>>;
 
   selectedRoomTypes: string[];
   setSelectedRoomTypes: React.Dispatch<React.SetStateAction<string[]>>;
@@ -31,15 +146,6 @@ type Props = {
   confirmedRoomSize: number;
   setConfirmedRoomSize: React.Dispatch<React.SetStateAction<number>>;
 
-  selectedCommuteTime: string | null;
-  setSelectedCommuteTime: React.Dispatch<React.SetStateAction<string | null>>;
-
-  selectedWalkTime: string | null;
-  setSelectedWalkTime: React.Dispatch<React.SetStateAction<string | null>>;
-
-  selectedTransfers: string | null;
-  setSelectedTransfers: React.Dispatch<React.SetStateAction<string | null>>;
-
   isBudgetTouched: boolean;
   setIsBudgetTouched: React.Dispatch<React.SetStateAction<boolean>>;
 
@@ -50,6 +156,9 @@ type Props = {
 export default function HomeFilterPanel({
   openFilterMenu,
   toggleFilter,
+
+  selectedRegions,
+  setSelectedRegions,
 
   selectedRoomTypes,
   setSelectedRoomTypes,
@@ -78,22 +187,17 @@ export default function HomeFilterPanel({
   confirmedRoomSize,
   setConfirmedRoomSize,
 
-  selectedCommuteTime,
-  setSelectedCommuteTime,
-
-  selectedWalkTime,
-  setSelectedWalkTime,
-
-  selectedTransfers,
-  setSelectedTransfers,
-
   isBudgetTouched,
   setIsBudgetTouched,
 
   isRoomSizeTouched,
   setIsRoomSizeTouched,
 }: Props) {
+  const [activeRegionGroup, setActiveRegionGroup] =
+    useState<RegionGroupKey>("seoul");
+
   const toggleOption = (
+    
     value: string,
     selectedValues: string[],
     setSelectedValues: React.Dispatch<React.SetStateAction<string[]>>
@@ -105,18 +209,10 @@ export default function HomeFilterPanel({
     );
   };
 
-  const optionClass = (isSelected: boolean) =>
-    `rounded-xl border p-3 font-semibold transition ${
-      isSelected
-        ? "border-slate-900 bg-(--color-primary) text-white"
-        : "border-(--color-border) bg-white text-slate-700 hover:bg-slate-50"
-    }`;
-
   const pillClass = (isSelected: boolean) =>
-    `rounded-full border px-4 py-2 font-semibold transition ${
-      isSelected
-        ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
-        : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-[var(--color-bg)]"
+    `rounded-full border px-4 py-2 text-sm font-semibold transition ${isSelected
+      ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+      : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-[var(--color-bg)]"
     }`;
 
   const formatKoreanMoney = (value: number) => {
@@ -137,19 +233,12 @@ export default function HomeFilterPanel({
 
     return `${value.toLocaleString()}만원`;
   };
+  
 
   return (
-    <>
+    <div>
       <div className="flex flex-wrap gap-3">
-        {[
-          ["roomType", "매물 유형"],
-          ["trade", "거래 유형"],
-          ["budget", "가격"],
-          ["commute", "출퇴근"],
-          ["roomSize", "방 크기"],
-          ["rooms", "방 개수"],
-          ["approvalDate", "사용승인일"],
-        ].map(([key, label]) => (
+        {FILTER_MENUS.map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -164,11 +253,10 @@ export default function HomeFilterPanel({
                 setIsRoomSizeTouched(true);
               }
             }}
-            className={`rounded-xl border px-5 py-3 font-semibold ${
-              openFilterMenu === key
-                ? "border-slate-900 bg-(--color-primary) text-white"
-                : "bg-white"
-            }`}
+            className={`rounded-xl border px-5 py-3 text-base font-semibold transition ${openFilterMenu === key
+                ? "border-slate-900 bg-[var(--color-primary)] text-white"
+                : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
+              }`}
           >
             {label}
           </button>
@@ -177,12 +265,64 @@ export default function HomeFilterPanel({
 
       {openFilterMenu && (
         <div className="mt-4 rounded-2xl border bg-gray-50 p-5">
+          {openFilterMenu === "region" && (
+            <>
+              <p className="mb-4 font-bold">지역</p>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex flex-wrap gap-2">
+                  {REGION_GROUPS.map((group) => {
+                    const isActive = activeRegionGroup === group.key;
+
+                    return (
+                      <button
+                        key={group.key}
+                        type="button"
+                        onClick={() => setActiveRegionGroup(group.key)}
+                        /* 대분류 영역: 서울 / 경기 / 인천 */
+                        className={`rounded-full border px-4 py-2 text-base font-semibold transition ${isActive
+                            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                            : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        {group.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="my-4 border-t border-gray-200" />
+
+                {/* 선택된 대분류에 해당하는 소분류 지역 목록 */}
+                <div className="flex flex-wrap gap-2">
+                  {REGION_GROUPS.find(
+                    (group) => group.key === activeRegionGroup
+                  )?.items.map((item) => {
+                    const isSelected = selectedRegions.includes(item);
+
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() =>
+                          toggleOption(item, selectedRegions, setSelectedRegions)
+                        }
+                        className={pillClass(isSelected)}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
           {openFilterMenu === "roomType" && (
             <>
               <p className="mb-4 font-bold">매물 유형</p>
-
               <div className="flex flex-wrap gap-2">
-                {["오피스텔", "원룸/투룸", "아파트", "쉐어하우스"].map((item) => {
+                {ROOM_TYPES.map((item) => {
                   const isSelected = selectedRoomTypes.includes(item);
 
                   return (
@@ -211,7 +351,7 @@ export default function HomeFilterPanel({
               <p className="mb-4 font-bold">거래 유형</p>
 
               <div className="flex flex-wrap gap-2">
-                {["월세", "전세", "매매"].map((item) => {
+                {TRADE_TYPES.map((item) => {
                   const isSelected = selectedTradeTypes.includes(item);
 
                   return (
@@ -234,28 +374,166 @@ export default function HomeFilterPanel({
               </div>
             </>
           )}
+
+          {openFilterMenu === "budget" && (
+            <>
+              <p className="mb-4 font-bold">가격</p>
+
+              <div className="space-y-5">
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="font-semibold text-gray-600">보증금</span>
+                    <span className="font-bold text-gray-900">
+                      {deposit >= 20000
+                        ? "무제한"
+                        : `${formatKoreanMoney(deposit)} 이하`}
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min={0}
+                    max={20000}
+                    step={500}
+                    value={deposit}
+                    onChange={(e) => setDeposit(Number(e.target.value))}
+                    onMouseUp={() => setConfirmedDeposit(deposit)}
+                    onTouchEnd={() => setConfirmedDeposit(deposit)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="font-semibold text-gray-600">월세</span>
+                    <span className="font-bold text-gray-900">
+                      {rent >= 150 ? "무제한" : `${rent}만원 이하`}
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min={0}
+                    max={150}
+                    step={5}
+                    value={rent}
+                    onChange={(e) => setRent(Number(e.target.value))}
+                    onMouseUp={() => setConfirmedRent(rent)}
+                    onTouchEnd={() => setConfirmedRent(rent)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {openFilterMenu === "roomSize" && (
+            <>
+              <p className="mb-4 font-bold">방 크기</p>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-semibold text-gray-600">최소 평수</span>
+                  <span className="font-bold text-gray-900">
+                    {roomSize}평 이상
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min={3}
+                  max={30}
+                  step={1}
+                  value={roomSize}
+                  onChange={(e) => setRoomSize(Number(e.target.value))}
+                  onMouseUp={() => setConfirmedRoomSize(roomSize)}
+                  onTouchEnd={() => setConfirmedRoomSize(roomSize)}
+                  className="w-full"
+                />
+              </div>
+            </>
+          )}
+
+          {openFilterMenu === "rooms" && (
+            <>
+              <p className="mb-4 font-bold">방 개수</p>
+
+              <div className="flex flex-wrap gap-2">
+                {ROOM_COUNTS.map((item) => {
+                  const isSelected = selectedRooms.includes(item);
+
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() =>
+                        toggleOption(item, selectedRooms, setSelectedRooms)
+                      }
+                      className={pillClass(isSelected)}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {openFilterMenu === "approvalDate" && (
+            <>
+              <p className="mb-4 font-bold">사용승인일</p>
+
+              <div className="flex flex-wrap gap-2">
+                {APPROVAL_DATES.map((item) => {
+                    const isSelected = selectedApprovalDate === item;
+
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() =>
+                          setSelectedApprovalDate((prev) =>
+                            prev === item ? null : item
+                          )
+                        }
+                        className={pillClass(isSelected)}
+                      >
+                        {item}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      <div className="mt-4 rounded-2xl border bg-white p-4">
+      <div className="mt-4 rounded-2xl border bg-gray-50 p-5">
         <p className="mb-3 font-bold">선택한 조건</p>
 
         <div className="flex flex-wrap gap-2 text-sm">
+          {selectedRegions.length > 0 && (
+            <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
+              지역: {selectedRegions.join(", ")}
+            </span>
+          )}
+
           {selectedRoomTypes.length > 0 && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
+            <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
               매물 유형: {selectedRoomTypes.join(", ")}
             </span>
           )}
 
           {selectedTradeTypes.length > 0 && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
+            <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
               거래 유형: {selectedTradeTypes.join(", ")}
             </span>
           )}
 
           {isBudgetTouched && (
             <>
-              <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
+              <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
                 보증금:{" "}
                 {confirmedDeposit >= 20000
                   ? "무제한"
@@ -263,49 +541,45 @@ export default function HomeFilterPanel({
                 이하
               </span>
 
-              <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
-                월세: {confirmedRent >= 150 ? "무제한" : `${confirmedRent}만원`} 이하
+              <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
+                월세: {confirmedRent >= 150 ? "무제한" : `${confirmedRent}만원`}{" "}
+                이하
               </span>
             </>
           )}
 
-          {selectedCommuteTime && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
-              소요시간: {selectedCommuteTime}
-            </span>
-          )}
-
-          {selectedWalkTime && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
-              도보시간: {selectedWalkTime}
-            </span>
-          )}
-
-          {selectedTransfers && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
-              환승횟수: {selectedTransfers}
-            </span>
-          )}
-
           {isRoomSizeTouched && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
+            <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
               방 크기: {confirmedRoomSize}평 이상
             </span>
           )}
 
           {selectedRooms.length > 0 && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
+            <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
               방 개수: {selectedRooms.join(", ")}
             </span>
           )}
 
           {selectedApprovalDate && (
-            <span className="rounded-full bg-(--color-primary) px-3 py-1 text-white">
+            <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
               사용승인일: {selectedApprovalDate}
             </span>
           )}
+
+          {selectedRegions.length === 0 &&
+            selectedRoomTypes.length === 0 &&
+            selectedTradeTypes.length === 0 &&
+            !isBudgetTouched &&
+            !isRoomSizeTouched &&
+            selectedRooms.length === 0 &&
+            !selectedApprovalDate && (
+              <span className="text-sm text-gray-400">
+                아직 선택한 조건이 없습니다.
+              </span>
+            )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
+

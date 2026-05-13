@@ -12,8 +12,8 @@ import HomeSearchOption from "@/components/HomeSearchOption";
 import { useKakaoRoomCluster } from "@/hooks/useKakaoRoomCluster";
 import { useRoomSummary } from "@/hooks/useRoomSummary";
 import CompanySearchPanel from "@/components/CompanySearchPanel";
-import InterestRegionPanel from "@/components/InterestRegionPanel";
-import RecommendAreaPanel from "@/components/RecommendAreaPanel";
+import { HOME_MODE_TEXT } from "@/constants/homeMode";
+
 
 declare global {
   interface Window {
@@ -69,10 +69,6 @@ export default function KakaoMap() {
   const [isBudgetTouched, setIsBudgetTouched] = useState(false);
   const [isRoomSizeTouched, setIsRoomSizeTouched] = useState(false);
 
-  const [selectedCommuteTime, setSelectedCommuteTime] = useState<string | null>(null);
-  const [selectedWalkTime, setSelectedWalkTime] = useState<string | null>(null);
-  const [selectedTransfers, setSelectedTransfers] = useState<string | null>(null);
-
   const {
     roomSummaries,
     loadingRoomId,
@@ -87,21 +83,6 @@ export default function KakaoMap() {
     setVisibleRooms,
     setShowRoomList,
   });
-
-  const homeModeText = {
-    condition: {
-      title: "조건으로 찾기",
-      description: "금액, 출근 시간 등 조건 중심으로 탐색",
-    },
-    interest: {
-      title: "관심 지역에서 찾기",
-      description: "원하는 동네 직접 선택",
-    },
-    recommend: {
-      title: "추천 생활권 보기",
-      description: "근처 회사 재직자들의 추천 지역",
-    },
-  };
 
   const isRoomMap = homeMode === "condition";
   const shouldShowMap = !showHomeOptions;
@@ -264,11 +245,11 @@ export default function KakaoMap() {
   };
 
   const resetHomeFilters = () => {
+    setSelectedRegions([]);
     setSelectedRoomTypes([]);
     setSelectedTradeTypes([]);
     setSelectedApprovalDate(null);
     setSelectedRooms([]);
-    setSelectedRegions([]);
 
     setDeposit(7000);
     setRent(70);
@@ -280,10 +261,6 @@ export default function KakaoMap() {
 
     setIsBudgetTouched(false);
     setIsRoomSizeTouched(false);
-
-    setSelectedCommuteTime(null);
-    setSelectedWalkTime(null);
-    setSelectedTransfers(null);
 
     setOpenFilterMenu(null);
   };
@@ -402,10 +379,10 @@ export default function KakaoMap() {
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <p className="text-lg font-bold">
-                {homeModeText[homeMode].title}
+                {HOME_MODE_TEXT[homeMode].title}
               </p>
               <p className="mt-1 text-sm text-gray-500">
-                {homeModeText[homeMode].description}
+                {HOME_MODE_TEXT[homeMode].description}
               </p>
             </div>
 
@@ -428,6 +405,8 @@ export default function KakaoMap() {
             <HomeFilterPanel
               openFilterMenu={openFilterMenu}
               toggleFilter={toggleFilter}
+              selectedRegions={selectedRegions}
+              setSelectedRegions={setSelectedRegions}
               selectedRoomTypes={selectedRoomTypes}
               setSelectedRoomTypes={setSelectedRoomTypes}
               selectedTradeTypes={selectedTradeTypes}
@@ -448,57 +427,14 @@ export default function KakaoMap() {
               setRoomSize={setRoomSize}
               confirmedRoomSize={confirmedRoomSize}
               setConfirmedRoomSize={setConfirmedRoomSize}
-              selectedCommuteTime={selectedCommuteTime}
-              setSelectedCommuteTime={setSelectedCommuteTime}
-              selectedWalkTime={selectedWalkTime}
-              setSelectedWalkTime={setSelectedWalkTime}
-              selectedTransfers={selectedTransfers}
-              setSelectedTransfers={setSelectedTransfers}
               isBudgetTouched={isBudgetTouched}
               setIsBudgetTouched={setIsBudgetTouched}
               isRoomSizeTouched={isRoomSizeTouched}
               setIsRoomSizeTouched={setIsRoomSizeTouched}
             />
           )}
-
-          {homeMode === "interest" && (
-            <InterestRegionPanel
-              selectedRegions={selectedRegions}
-              setSelectedRegions={setSelectedRegions}
-            />
-          )}
-
-          {homeMode === "recommend" && <RecommendAreaPanel />}
         </div>
       )}
-
-      {/* <div
-        className={shouldShowMap ? "mt-8 flex gap-4" : "hidden"}
-        style={{ height: shouldShowMap ? "418px" : 0 }}
-      >
-        <div
-          className={`shrink-0 overflow-hidden transition-all duration-300 ${shouldShowRoomPanel ? "w-[360px]" : "w-0"
-            }`}
-        >
-          {shouldShowRoomPanel && (
-            <RoomListPanel
-              visibleRooms={visibleRooms}
-              loadingRoomId={loadingRoomId}
-              roomSummaries={roomSummaries}
-              getRoomSummary={getRoomSummary}
-            />
-          )}
-        </div>
-
-        <div
-          className={`min-w-0 flex-1 overflow-hidden rounded-2xl ${shouldShowMap ? "border block" : "hidden"
-            }`}
-        >
-          <div id="map" className="h-full w-full bg-gray-200" />
-        </div>
-      </div>
-      
-      */}
 
       <div
         className={shouldShowMap ? "mt-8 flex gap-0" : "hidden"}
