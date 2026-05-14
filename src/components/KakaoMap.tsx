@@ -21,6 +21,8 @@ declare global {
   }
 }
 
+const FAVORITE_ROOMS_STORAGE_KEY = "wherehouse_favorite_rooms";
+
 export default function KakaoMap() {
   /**
    * 1. 지도 / 외부 DOM 참조
@@ -110,7 +112,24 @@ export default function KakaoMap() {
    * - 하트 누른 매물을 저장
    * - favoriteCompare 모드에서는 이 배열만 패널에 표시
    */
-  const [favoriteRooms, setFavoriteRooms] = useState<Room[]>([]);
+  const [favoriteRooms, setFavoriteRooms] = useState<Room[]>(() => {
+    if (typeof window === "undefined") return [];
+
+    try {
+      const savedFavoriteRooms = window.localStorage.getItem(
+        FAVORITE_ROOMS_STORAGE_KEY
+      );
+
+      if (!savedFavoriteRooms) return [];
+
+      const parsedFavoriteRooms = JSON.parse(savedFavoriteRooms);
+
+      return Array.isArray(parsedFavoriteRooms) ? parsedFavoriteRooms : [];
+    } catch (error) {
+      console.error("관심 매물을 불러오지 못했습니다.", error);
+      return [];
+    }
+  });
 
   /**
    * 11. 매물 요약 hook
@@ -415,6 +434,16 @@ export default function KakaoMap() {
     return () => clearTimeout(timer);
   }, [homeMode, favoriteRooms]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        FAVORITE_ROOMS_STORAGE_KEY,
+        JSON.stringify(favoriteRooms)
+      );
+    } catch (error) {
+      console.error("관심 매물을 저장하지 못했습니다.", error);
+    }
+  }, [favoriteRooms]);
 
   
 
