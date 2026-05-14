@@ -309,7 +309,7 @@ export default function LocationSearchPanel({
             </div>
 
             {isHomeSearchPanelOpen && (
-                <div className="mt-3 pb-1.5">
+                <div className="mt-3 pb-2">
                     {showLocationOption && (
                         <div className="grid grid-cols-2 gap-4 pb-1">
                             <CompanyCard
@@ -357,10 +357,10 @@ export default function LocationSearchPanel({
                     )}
 
                     {homeMode && (
-                        <div className="mt-4 rounded-2xl bg-gray-50 p-4">
+                        <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 p-4 shadow-sm">
                             <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-lg font-bold text-gray-900">
+                                    <p className="text-base font-bold text-gray-900">
                                         {HOME_MODE_TEXT[homeMode].title}
                                     </p>
 

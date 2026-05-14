@@ -539,7 +539,6 @@ export function useKakaoRoomCluster({
                 : allRooms;
 
             setFilteredRooms(matchedRooms);
-            setShowRoomList(true);
 
             if (allRooms.length === 0) {
                 return;
@@ -568,7 +567,6 @@ export function useKakaoRoomCluster({
             setFilteredRooms([]);
             setSelectedClusterRooms([]);
             setSelectedClusterName(null);
-            setShowRoomList(true);
         }
     };
 

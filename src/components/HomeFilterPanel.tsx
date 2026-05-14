@@ -294,7 +294,7 @@ export default function HomeFilterPanel({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 text-sm">
         {FILTER_MENUS.map(([key, label]) => (
           <button
             key={key}
@@ -310,7 +310,7 @@ export default function HomeFilterPanel({
                 setIsRoomSizeTouched(true);
               }
             }}
-            className={`rounded-xl border px-5 py-3 text-base font-semibold transition ${openFilterMenu === key
+            className={`rounded-xl border px-4 py-3 font-semibold transition ${openFilterMenu === key
                 ? "border-slate-900 bg-[var(--color-primary)] text-white"
                 : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
               }`}
@@ -321,7 +321,7 @@ export default function HomeFilterPanel({
       </div>
 
       {openFilterMenu && (
-        <div className="mt-4 rounded-2xl border bg-gray-50 p-5">
+        <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 p-5 shadow-sm">
           {openFilterMenu === "region" && (
             <>
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -372,22 +372,22 @@ export default function HomeFilterPanel({
 
                 <div className="flex flex-wrap gap-2">
                   {activeRegionItems.map((item) => {
-                    const value = `${activeRegionGroupData?.valuePrefix} ${item}`;
-                    const isSelected = selectedRegions.includes(value);
+  const value = `${activeRegionGroupData?.valuePrefix} ${item}`;
+  const isSelected = selectedRegions.includes(value);
 
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          toggleOption(value, selectedRegions, setSelectedRegions)
-                        }
-                        className={pillClass(isSelected)}
-                      >
-                        {item}
-                      </button>
-                    );
-                  })}
+  return (
+    <button
+      key={value}
+      type="button"
+      onClick={() =>
+        toggleOption(value, selectedRegions, setSelectedRegions)
+      }
+      className={pillClass(isSelected)}
+    >
+      {item}
+    </button>
+  );
+})}
                 </div>
               </div>
             </>
@@ -584,7 +584,7 @@ export default function HomeFilterPanel({
         </div>
       )}
 
-      <div className="mt-4 rounded-2xl border bg-gray-50 p-5">
+      <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 p-5 shadow-sm">
         <p className="mb-3 font-bold">선택한 조건</p>
 
         <div className="flex flex-wrap gap-2 text-sm">
