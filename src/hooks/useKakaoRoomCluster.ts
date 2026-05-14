@@ -2,14 +2,15 @@ import { useRef } from "react";
 import type { Room } from "@/types/map";
 
 type ShowRoomClustersParams = {
-    regions?: string[];
-    roomTypes?: string[];
-    tradeTypes?: string[];
-    maxDeposit?: number | null;
-    maxRent?: number | null;
-    minRoomSize?: number | null;
-    rooms?: string[];
-    approvalDate?: string | null;
+    sourceRooms?: Room[];
+    regions: string[];
+    roomTypes: string[];
+    tradeTypes: string[];
+    maxDeposit: number | null;
+    maxRent: number | null;
+    minRoomSize: number | null;
+    rooms: string[];
+    approvalDate: string | null;
 };
 
 type UseKakaoRoomClusterProps = {
@@ -409,47 +410,107 @@ export function useKakaoRoomCluster({
         mapRef.current.setBounds(bounds);
     };
 
-    const buildQueryString = (params: ShowRoomClustersParams) => {
-        const searchParams = new URLSearchParams();
-
-        params.regions?.forEach((region) => {
-            searchParams.append("regions", region);
-        });
-
-        params.roomTypes?.forEach((roomType) => {
-            searchParams.append("roomTypes", roomType);
-        });
-
-        params.tradeTypes?.forEach((tradeType) => {
-            searchParams.append("tradeTypes", tradeType);
-        });
-
-        params.rooms?.forEach((room) => {
-            searchParams.append("rooms", room);
-        });
-
-        if (params.maxDeposit !== null && params.maxDeposit !== undefined) {
-            searchParams.set("maxDeposit", String(params.maxDeposit));
-        }
-
-        if (params.maxRent !== null && params.maxRent !== undefined) {
-            searchParams.set("maxRent", String(params.maxRent));
-        }
-
-        if (params.minRoomSize !== null && params.minRoomSize !== undefined) {
-            searchParams.set("minRoomSize", String(params.minRoomSize));
-        }
-
-        if (params.approvalDate) {
-            searchParams.set("approvalDate", params.approvalDate);
-        }
-
-        const queryString = searchParams.toString();
-
-        return queryString ? `?${queryString}` : "";
+    const hasActiveFilter = (params: ShowRoomClustersParams) => {
+        return (
+            params.regions.length > 0 ||
+            params.roomTypes.length > 0 ||
+            params.tradeTypes.length > 0 ||
+            params.rooms.length > 0 ||
+            params.maxDeposit !== null ||
+            params.maxRent !== null ||
+            params.minRoomSize !== null ||
+            Boolean(params.approvalDate)
+        );
     };
 
-    const showRoomClusters = async (params: ShowRoomClustersParams = {}) => {
+    const includesAny = (value: unknown, selectedValues: string[]) => {
+        if (selectedValues.length === 0) return true;
+
+        const text = String(value ?? "");
+
+        return selectedValues.some((selectedValue) =>
+            text.includes(selectedValue)
+        );
+    };
+
+    const getNumberValue = (...values: unknown[]) => {
+        for (const value of values) {
+            const numberValue = Number(value);
+
+            if (Number.isFinite(numberValue)) {
+                return numberValue;
+            }
+        }
+
+        return null;
+    };
+
+    const filterRooms = (rooms: Room[], params: ShowRoomClustersParams) => {
+        return rooms.filter((room) => {
+            const roomAny = room as any;
+
+            const location = String(roomAny.location ?? "");
+            const roomType = String(roomAny.room_type ?? roomAny.roomType ?? "");
+            const tradeType = String(roomAny.trade_type ?? roomAny.tradeType ?? "");
+            const roomCount = String(roomAny.rooms ?? roomAny.room_count ?? roomAny.roomCount ?? "");
+            const approvalDate = String(
+                roomAny.approval_date ??
+                roomAny.approvalDate ??
+                roomAny.approved_at ??
+                ""
+            );
+
+            const deposit = getNumberValue(roomAny.deposit, roomAny.deposit_price);
+            const rent = getNumberValue(roomAny.rent, roomAny.monthly_rent);
+            const roomSize = getNumberValue(
+                roomAny.room_size,
+                roomAny.roomSize,
+                roomAny.area,
+                roomAny.exclusive_area
+            );
+
+            if (!includesAny(location, params.regions)) return false;
+            if (!includesAny(roomType, params.roomTypes)) return false;
+            if (!includesAny(tradeType, params.tradeTypes)) return false;
+            if (!includesAny(roomCount, params.rooms)) return false;
+
+            if (
+                params.maxDeposit !== null &&
+                deposit !== null &&
+                deposit > params.maxDeposit
+            ) {
+                return false;
+            }
+
+            if (
+                params.maxRent !== null &&
+                rent !== null &&
+                rent > params.maxRent
+            ) {
+                return false;
+            }
+
+            if (
+                params.minRoomSize !== null &&
+                roomSize !== null &&
+                roomSize < params.minRoomSize
+            ) {
+                return false;
+            }
+
+            if (
+                params.approvalDate &&
+                approvalDate &&
+                !approvalDate.includes(params.approvalDate)
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+    };
+
+    const showRoomClusters = async (params: ShowRoomClustersParams) => {
         if (!mapRef.current || !window.kakao?.maps) return;
 
         markersRef.current.forEach((marker) => marker.setMap(null));
@@ -470,42 +531,13 @@ export function useKakaoRoomCluster({
         setSelectedClusterName(null);
 
         try {
-            const queryString = buildQueryString(params);
-            const hasFilter = queryString.length > 0;
+            const allRooms = params.sourceRooms ?? [];
+            const hasFilter = hasActiveFilter(params);
 
-            const [allRooms, matchedRooms]: [Room[], Room[]] = hasFilter
-                ? await Promise.all([
-                    fetch("/api/rooms").then((res) => {
-                        if (!res.ok) {
-                            throw new Error("전체 매물 데이터를 불러오지 못했습니다.");
-                        }
+            const matchedRooms = hasFilter
+                ? filterRooms(allRooms, params)
+                : allRooms;
 
-                        return res.json();
-                    }),
-                    fetch(`/api/rooms${queryString}`).then(async (res) => {
-                        if (!res.ok) {
-                            console.warn("조건에 맞는 매물이 없습니다.");
-                            return [];
-                        }
-
-                        const data = await res.json();
-
-                        return Array.isArray(data) ? data : [];
-                    }),
-                ])
-                : await fetch("/api/rooms")
-                    .then((res) => {
-                        if (!res.ok) {
-                            throw new Error("매물 데이터를 불러오지 못했습니다.");
-                        }
-
-                        return res.json();
-                    })
-                    .then((rooms: Room[]) => [rooms, rooms]);
-
-            // 왼쪽 기본 매물 정보
-            // 조건 없음: 전체 매물
-            // 조건 있음: 조건에 맞는 매물
             setFilteredRooms(matchedRooms);
             setShowRoomList(true);
 
@@ -514,8 +546,6 @@ export function useKakaoRoomCluster({
             }
 
             const matchedRoomIdSet = new Set(matchedRooms.map(getRoomId));
-
-            // 지도 마커는 전체 매물 기준으로 생성
             const groups = groupRoomsByRegion(allRooms);
 
             groups.forEach((group) => {

@@ -2,17 +2,14 @@
 
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
-import { House } from "lucide-react";
 
 import type { Place, Room, FilterMenu, HomeMode } from "@/types/map";
 import RoomListPanel from "@/components/RoomListPanel";
-import CompanyCard from "@/components/CompanyCard";
-import HomeFilterPanel from "@/components/HomeFilterPanel";
-import HomeSearchOption from "@/components/HomeSearchOption";
-import CompanySearchPanel from "@/components/CompanySearchPanel";
 import { useKakaoRoomCluster } from "@/hooks/useKakaoRoomCluster";
 import { useRoomSummary } from "@/hooks/useRoomSummary";
-import { HOME_MODE_TEXT } from "@/constants/homeMode";
+import { useRoomsCache } from "@/hooks/useRoomsCache";
+import { useFavoriteRooms } from "@/hooks/useFavoriteRooms";
+import LocationSearchPanel from "@/components/LocationSearchPanel";
 
 declare global {
   interface Window {
@@ -21,12 +18,9 @@ declare global {
   }
 }
 
-const FAVORITE_ROOMS_STORAGE_KEY = "wherehouse_favorite_rooms";
-
 export default function KakaoMap() {
   /**
-   * 1. 지도 / 외부 DOM 참조
-   * - Kakao Map 객체, 회사 마커, 검색 input 등을 직접 제어하기 위한 ref
+   * 지도와 외부 DOM 참조
    */
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -35,8 +29,22 @@ export default function KakaoMap() {
   const previousCompanyRef = useRef<Place | null>(null);
 
   /**
-   * 2. 회사 위치 검색 상태
-   * - 회사 검색어, 검색 결과, 검색 성공/실패 상태 관리
+   * 매물 데이터 캐시
+   */
+  const { loadRoomsOnce } = useRoomsCache();
+
+  /**
+   * 관심 매물 관리
+   */
+  const {
+    favoriteRooms,
+    addFavoriteRoom,
+    removeFavoriteRoom,
+    getRoomId,
+  } = useFavoriteRooms();
+
+  /**
+   * 회사 위치 검색 상태
    */
   const [keyword, setKeyword] = useState("");
   const [places, setPlaces] = useState<Place[]>([]);
@@ -45,43 +53,40 @@ export default function KakaoMap() {
   const [searchFailed, setSearchFailed] = useState(false);
 
   /**
-   * 3. 회사 위치 선택 상태
-   * - selectedCompany: 현재 선택된 회사
-   * - confirmedCompany: 최종 확정된 회사 위치
+   * 회사 위치 선택 상태
    */
   const [selectedCompany, setSelectedCompany] = useState<Place | null>(null);
   const [confirmedCompany, setConfirmedCompany] = useState<Place | null>(null);
 
   /**
-   * 4. 화면 패널 / 집 탐색 모드 상태
-   * - showHomeFilters, isEditingCompany는 현재 값은 직접 사용하지 않고 setter만 사용
+   * 집 찾기 패널 상태
    */
   const [showCompanySearch, setShowCompanySearch] = useState(false);
   const [, setIsEditingCompany] = useState(false);
 
-  const [showHomeOptions, setShowHomeOptions] = useState(false);
+  const [isHomeSearchPanelOpen, setIsHomeSearchPanelOpen] = useState(true);
+  const [showLocationOption, setShowLocationOption] = useState(true);
+  const [showHomeOption, setShowHomeOption] = useState(false);
   const [homeMode, setHomeMode] = useState<HomeMode>(null);
-  const [, setShowHomeFilters] = useState(false);
+  const [showHomeFilters, setShowHomeFilters] = useState(false);
   const [openFilterMenu, setOpenFilterMenu] = useState<FilterMenu>(null);
 
   /**
-   * 5. 조건 필터 입력값
-   * - 사용자가 조절 중인 값
+   * 조건 필터 입력값
    */
   const [deposit, setDeposit] = useState(7000);
   const [rent, setRent] = useState(70);
   const [roomSize, setRoomSize] = useState(10);
 
   /**
-   * 6. 조건 필터 확정값
-   * - 실제 매물 조회에 반영되는 값
+   * 조건 필터 확정값
    */
   const [confirmedDeposit, setConfirmedDeposit] = useState(7000);
   const [confirmedRent, setConfirmedRent] = useState(70);
   const [confirmedRoomSize, setConfirmedRoomSize] = useState(10);
 
   /**
-   * 7. 조건 필터 선택 상태
+   * 조건 필터 선택 상태
    */
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
@@ -90,17 +95,13 @@ export default function KakaoMap() {
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
 
   /**
-   * 8. 조건 필터 사용 여부
-   * - 예산/평수는 기본값이 있기 때문에 사용자가 실제 조작했는지 별도로 관리
+   * 조건 필터 사용 여부
    */
   const [isBudgetTouched, setIsBudgetTouched] = useState(false);
   const [isRoomSizeTouched, setIsRoomSizeTouched] = useState(false);
 
   /**
-   * 9. 매물 목록 / 클러스터 선택 상태
-   * - filteredRooms: 현재 조건에 맞는 전체 매물
-   * - selectedClusterRooms: 특정 지역/클러스터 클릭 시 해당 매물
-   * - selectedClusterName은 setter만 hook/reset에서 사용
+   * 매물 목록과 클러스터 상태
    */
   const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
   const [selectedClusterRooms, setSelectedClusterRooms] = useState<Room[]>([]);
@@ -108,31 +109,14 @@ export default function KakaoMap() {
   const [showRoomList, setShowRoomList] = useState(false);
 
   /**
-   * 10. 관심 매물 상태
-   * - 하트 누른 매물을 저장
-   * - favoriteCompare 모드에서는 이 배열만 패널에 표시
+   * 관심 매물 비교 상태
    */
-  const [favoriteRooms, setFavoriteRooms] = useState<Room[]>(() => {
-    if (typeof window === "undefined") return [];
-
-    try {
-      const savedFavoriteRooms = window.localStorage.getItem(
-        FAVORITE_ROOMS_STORAGE_KEY
-      );
-
-      if (!savedFavoriteRooms) return [];
-
-      const parsedFavoriteRooms = JSON.parse(savedFavoriteRooms);
-
-      return Array.isArray(parsedFavoriteRooms) ? parsedFavoriteRooms : [];
-    } catch (error) {
-      console.error("관심 매물을 불러오지 못했습니다.", error);
-      return [];
-    }
-  });
+  const [selectedCompareRoomIds, setSelectedCompareRoomIds] = useState<string[]>([]);
+  const [compareReport, setCompareReport] = useState("");
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   /**
-   * 11. 매물 요약 hook
+   * 매물 요약
    */
   const {
     roomSummaries,
@@ -141,7 +125,7 @@ export default function KakaoMap() {
   } = useRoomSummary(confirmedCompany);
 
   /**
-   * 12. Kakao 매물 클러스터 hook
+   * 카카오맵 매물 클러스터
    */
   const {
     clearRoomClusters,
@@ -156,10 +140,9 @@ export default function KakaoMap() {
   });
 
   /**
-   * 13. 화면 표시용 파생값
+   * 화면 표시용 값
    */
   const isRoomMap = homeMode === "condition" || homeMode === "favoriteCompare";
-  const shouldShowMap = !showHomeOptions;
 
   const visibleRooms =
     selectedClusterRooms.length > 0 ? selectedClusterRooms : filteredRooms;
@@ -177,8 +160,10 @@ export default function KakaoMap() {
         ? `선택 지역 ${selectedRegions.length}곳`
         : "전체 매물";
 
+  const mapHeight = isHomeSearchPanelOpen ? "h-[418px]" : "h-[620px]";
+
   /**
-   * 14. 지도 초기화
+   * 지도 초기화
    */
   const initializeMap = () => {
     window.kakao.maps.load(() => {
@@ -200,7 +185,7 @@ export default function KakaoMap() {
   };
 
   /**
-   * 15. 회사 위치 검색
+   * 회사 위치 검색
    */
   const searchPlace = () => {
     clearRoomClusters();
@@ -228,7 +213,7 @@ export default function KakaoMap() {
   };
 
   /**
-   * 16. 회사 위치 확정
+   * 회사 위치 확정
    */
   const confirmCompany = (place: Place) => {
     setSelectedCompany(place);
@@ -287,7 +272,7 @@ export default function KakaoMap() {
   };
 
   /**
-   * 17. 회사 검색 결과 지도 미리보기
+   * 회사 검색 결과 지도 미리보기
    */
   const previewCompanyOnMap = (place: Place) => {
     if (!mapRef.current) return;
@@ -347,15 +332,14 @@ export default function KakaoMap() {
   };
 
   /**
-   * 18. 조건 필터 메뉴 열기/닫기
+   * 조건 필터 메뉴
    */
   const toggleFilter = (menu: FilterMenu) => {
     setOpenFilterMenu((prev) => (prev === menu ? null : menu));
   };
 
   /**
-   * 19. 집 탐색 조건 초기화
-   * - 찾기 방식 변경, 집 버튼 재진입, 모드 변경 시 사용
+   * 집 탐색 조건 초기화
    */
   const resetHomeFilters = () => {
     setSelectedRegions([]);
@@ -376,37 +360,49 @@ export default function KakaoMap() {
     setIsRoomSizeTouched(false);
 
     setOpenFilterMenu(null);
-
     setSelectedClusterRooms([]);
-    setSelectedClusterName(null);
 
     setShowRoomList(false);
     setShowHomeFilters(false);
   };
 
   /**
-   * 20. 조건 변경 시 매물 클러스터 갱신
+   * 조건 변경 시 매물 클러스터 갱신
    */
   useEffect(() => {
     if (homeMode !== "condition") return;
 
-    const timer = setTimeout(() => {
-      setSelectedClusterRooms([]);
-      setSelectedClusterName(null);
+    let isCancelled = false;
 
-      showRoomClusters({
-        regions: selectedRegions,
-        roomTypes: selectedRoomTypes,
-        tradeTypes: selectedTradeTypes,
-        maxDeposit: isBudgetTouched ? confirmedDeposit : null,
-        maxRent: isBudgetTouched ? confirmedRent : null,
-        minRoomSize: isRoomSizeTouched ? confirmedRoomSize : null,
-        rooms: selectedRooms,
-        approvalDate: selectedApprovalDate,
-      });
+    const timer = setTimeout(async () => {
+      try {
+        const rooms = await loadRoomsOnce();
+
+        if (isCancelled) return;
+
+        setSelectedClusterRooms([]);
+        setSelectedClusterName(null);
+
+        showRoomClusters({
+          sourceRooms: rooms,
+          regions: selectedRegions,
+          roomTypes: selectedRoomTypes,
+          tradeTypes: selectedTradeTypes,
+          maxDeposit: isBudgetTouched ? confirmedDeposit : null,
+          maxRent: isBudgetTouched ? confirmedRent : null,
+          minRoomSize: isRoomSizeTouched ? confirmedRoomSize : null,
+          rooms: selectedRooms,
+          approvalDate: selectedApprovalDate,
+        });
+      } catch (error) {
+        console.error("매물 클러스터를 갱신하지 못했습니다.", error);
+      }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
   }, [
     homeMode,
     selectedRegions,
@@ -419,8 +415,13 @@ export default function KakaoMap() {
     confirmedRoomSize,
     isBudgetTouched,
     isRoomSizeTouched,
+    loadRoomsOnce,
+    showRoomClusters,
   ]);
 
+  /**
+   * 관심 매물 비교 모드 클러스터 갱신
+   */
   useEffect(() => {
     if (homeMode !== "favoriteCompare") return;
 
@@ -432,51 +433,83 @@ export default function KakaoMap() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [homeMode, favoriteRooms]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        FAVORITE_ROOMS_STORAGE_KEY,
-        JSON.stringify(favoriteRooms)
-      );
-    } catch (error) {
-      console.error("관심 매물을 저장하지 못했습니다.", error);
-    }
-  }, [favoriteRooms]);
-
-  
+  }, [
+    homeMode,
+    favoriteRooms,
+    showFavoriteRoomClusters,
+  ]);
 
   /**
-   * 21. 관심 매물 추가
+   * 관심 매물 제거
    */
-  const addFavoriteRoom = (room: Room) => {
-    const roomId = String((room as any).id ?? (room as any).room_id);
+  const handleRemoveFavoriteRoom = (room: Room) => {
+    const roomId = getRoomId(room);
 
-    setFavoriteRooms((prev) => {
-      const alreadyExists = prev.some((item) => {
-        const itemId = String((item as any).id ?? (item as any).room_id);
-        return itemId === roomId;
-      });
+    removeFavoriteRoom(room);
 
-      if (alreadyExists) return prev;
-
-      return [...prev, room];
-    });
+    setSelectedCompareRoomIds((prev) =>
+      prev.filter((id) => id !== roomId)
+    );
   };
 
   /**
-   * 22. 관심 매물 제거
+   * 관심 매물 비교 선택
    */
-  const removeFavoriteRoom = (room: Room) => {
-    const roomId = String((room as any).id ?? (room as any).room_id);
+  const toggleCompareRoom = (room: Room) => {
+    const roomId = getRoomId(room);
 
-    setFavoriteRooms((prev) =>
-      prev.filter((item) => {
-        const itemId = String((item as any).id ?? (item as any).room_id);
-        return itemId !== roomId;
-      })
+    setSelectedCompareRoomIds((prev) =>
+      prev.includes(roomId)
+        ? prev.filter((id) => id !== roomId)
+        : [...prev, roomId]
     );
+  };
+
+  /**
+   * 관심 매물 비교 리포트 생성
+   */
+  const generateCompareReport = async () => {
+    const selectedRooms = favoriteRooms.filter((room) =>
+      selectedCompareRoomIds.includes(getRoomId(room))
+    );
+
+    if (selectedRooms.length < 2) {
+      alert("비교할 매물을 2개 이상 선택해 주세요.");
+      return;
+    }
+
+    setIsGeneratingReport(true);
+    setCompareReport("");
+
+    try {
+      const res = await fetch("/api/ai/compare-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rooms: selectedRooms,
+          company: confirmedCompany,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "분석 리포트 생성 실패");
+      }
+
+      setCompareReport(data.report ?? "");
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "분석 리포트 생성 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   return (
@@ -487,161 +520,77 @@ export default function KakaoMap() {
         onLoad={initializeMap}
       />
 
-      {/* 상단: 회사 / 집 카드 */}
-      <div className="mt-8 grid gap-4 lg:grid-cols-2">
-        <CompanyCard
-          selectedCompany={selectedCompany}
-          showCompanySearch={showCompanySearch}
-          setShowCompanySearch={setShowCompanySearch}
-          setShowHomeOptions={setShowHomeOptions}
-          setShowHomeFilters={setShowHomeFilters}
-          setHomeMode={setHomeMode}
-          setOpenFilterMenu={setOpenFilterMenu}
-          setShowRoomList={setShowRoomList}
-          setPlaces={setPlaces}
-          setKeyword={setKeyword}
-          setHasSearched={setHasSearched}
-          setIsEditingCompany={setIsEditingCompany}
-          inputRef={inputRef}
-          clearRoomClusters={clearRoomClusters}
-          confirmCompany={confirmCompany}
-          previousCompanyRef={previousCompanyRef}
-        />
-
-        <div className="rounded-2xl bg-[#fef8ec] p-5 text-[#374151] shadow-sm transition-transform duration-300">
-          <button
-            type="button"
-            onClick={() => {
-              setShowCompanySearch(false);
-              setPlaces([]);
-              setKeyword("");
-
-              clearRoomClusters();
-              resetHomeFilters();
-
-              setHomeMode(null);
-              setShowHomeOptions(true);
-            }}
-            className="flex min-h-[80px] w-full items-center justify-center gap-4 active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-3">
-              <House size={28} className="text-[#6B5B4D]" />
-
-              <span className="text-2xl font-bold text-[#1F2937]">
-                집
-              </span>
-            </div>
-
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#94A3B8] bg-white text-3xl text-[#475569] transition-colors duration-200 hover:bg-[#F1F5F9]">
-              +
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* 회사 검색 패널 */}
-      {showCompanySearch && (
-        <CompanySearchPanel
-          inputRef={inputRef}
-          keyword={keyword}
-          setKeyword={setKeyword}
-          searchPlace={searchPlace}
-          showCompanySearch={showCompanySearch}
-          hasSearched={hasSearched}
-          isSearching={isSearching}
-          searchFailed={searchFailed}
-          places={places}
-          previewCompanyOnMap={previewCompanyOnMap}
-        />
-      )}
-
-      {/* 집 탐색 방식 선택 패널 */}
-      {showHomeOptions && (
-        <HomeSearchOption
-          setHomeMode={setHomeMode}
-          setShowHomeOptions={setShowHomeOptions}
-          setShowHomeFilters={setShowHomeFilters}
-          setShowRoomList={setShowRoomList}
-          showRoomClusters={showRoomClusters}
-          mapRef={mapRef}
-          resetHomeFilters={resetHomeFilters}
-        />
-      )}
-
-      {/* 선택된 집 탐색 모드 안내 / 조건 필터 */}
-      {homeMode && (
-        <div className="mt-6 rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <p className="text-lg font-bold">
-                {HOME_MODE_TEXT[homeMode].title}
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                {HOME_MODE_TEXT[homeMode].description}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                clearRoomClusters();
-                resetHomeFilters();
-
-                setHomeMode(null);
-                setShowHomeOptions(true);
-              }}
-              className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
-            >
-              찾기 방식 변경
-            </button>
-          </div>
-
-          {homeMode === "condition" && (
-            <HomeFilterPanel
-              openFilterMenu={openFilterMenu}
-              toggleFilter={toggleFilter}
-              selectedRegions={selectedRegions}
-              setSelectedRegions={setSelectedRegions}
-              selectedRoomTypes={selectedRoomTypes}
-              setSelectedRoomTypes={setSelectedRoomTypes}
-              selectedTradeTypes={selectedTradeTypes}
-              setSelectedTradeTypes={setSelectedTradeTypes}
-              selectedApprovalDate={selectedApprovalDate}
-              setSelectedApprovalDate={setSelectedApprovalDate}
-              selectedRooms={selectedRooms}
-              setSelectedRooms={setSelectedRooms}
-              deposit={deposit}
-              setDeposit={setDeposit}
-              confirmedDeposit={confirmedDeposit}
-              setConfirmedDeposit={setConfirmedDeposit}
-              rent={rent}
-              setRent={setRent}
-              confirmedRent={confirmedRent}
-              setConfirmedRent={setConfirmedRent}
-              roomSize={roomSize}
-              setRoomSize={setRoomSize}
-              confirmedRoomSize={confirmedRoomSize}
-              setConfirmedRoomSize={setConfirmedRoomSize}
-              isBudgetTouched={isBudgetTouched}
-              setIsBudgetTouched={setIsBudgetTouched}
-              isRoomSizeTouched={isRoomSizeTouched}
-              setIsRoomSizeTouched={setIsRoomSizeTouched}
-            />
-          )}
-        </div>
-      )}
-
-      {/* 지도 영역 */}
+      {/* 회사/집 위치 설정 */}
+      <LocationSearchPanel
+        isHomeSearchPanelOpen={isHomeSearchPanelOpen}
+        setIsHomeSearchPanelOpen={setIsHomeSearchPanelOpen}
+        selectedCompany={selectedCompany}
+        showCompanySearch={showCompanySearch}
+        setShowCompanySearch={setShowCompanySearch}
+        keyword={keyword}
+        setKeyword={setKeyword}
+        places={places}
+        setPlaces={setPlaces}
+        hasSearched={hasSearched}
+        setHasSearched={setHasSearched}
+        isSearching={isSearching}
+        searchFailed={searchFailed}
+        searchPlace={searchPlace}
+        previewCompanyOnMap={previewCompanyOnMap}
+        showLocationOption={showLocationOption}
+        setShowLocationOption={setShowLocationOption}
+        showHomeOption={showHomeOption}
+        setShowHomeOption={setShowHomeOption}
+        showHomeFilters={showHomeFilters}
+        setShowHomeFilters={setShowHomeFilters}
+        homeMode={homeMode}
+        setHomeMode={setHomeMode}
+        openFilterMenu={openFilterMenu}
+        toggleFilter={toggleFilter}
+        setOpenFilterMenu={setOpenFilterMenu}
+        setShowRoomList={setShowRoomList}
+        setIsEditingCompany={setIsEditingCompany}
+        inputRef={inputRef}
+        clearRoomClusters={clearRoomClusters}
+        confirmCompany={confirmCompany}
+        previousCompanyRef={previousCompanyRef}
+        resetHomeFilters={resetHomeFilters}
+        selectedRegions={selectedRegions}
+        setSelectedRegions={setSelectedRegions}
+        selectedRoomTypes={selectedRoomTypes}
+        setSelectedRoomTypes={setSelectedRoomTypes}
+        selectedTradeTypes={selectedTradeTypes}
+        setSelectedTradeTypes={setSelectedTradeTypes}
+        selectedApprovalDate={selectedApprovalDate}
+        setSelectedApprovalDate={setSelectedApprovalDate}
+        selectedRooms={selectedRooms}
+        setSelectedRooms={setSelectedRooms}
+        deposit={deposit}
+        setDeposit={setDeposit}
+        confirmedDeposit={confirmedDeposit}
+        setConfirmedDeposit={setConfirmedDeposit}
+        rent={rent}
+        setRent={setRent}
+        confirmedRent={confirmedRent}
+        setConfirmedRent={setConfirmedRent}
+        roomSize={roomSize}
+        setRoomSize={setRoomSize}
+        confirmedRoomSize={confirmedRoomSize}
+        setConfirmedRoomSize={setConfirmedRoomSize}
+        isBudgetTouched={isBudgetTouched}
+        setIsBudgetTouched={setIsBudgetTouched}
+        isRoomSizeTouched={isRoomSizeTouched}
+        setIsRoomSizeTouched={setIsRoomSizeTouched}
+        compareReport={compareReport}
+      />
+      {/* 지도 */}
       <div
-        className={
-          shouldShowMap
-            ? "relative mt-8 h-[418px] overflow-hidden rounded-2xl border"
-            : "hidden"
-        }
+        className={`relative mt-6 ${isHomeSearchPanelOpen ? "h-[418px]" : "h-[620px]"
+          } overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm`}
       >
         <div id="map" className="h-full w-full bg-gray-200" />
 
-        {/* 매물 정보 패널 - 펼쳐진 상태 */}
+        {/* 매물 정보 패널 */}
         {isRoomMap && showRoomList && (
           <div className="absolute left-0 top-0 z-10 h-full w-[380px] border-r bg-white shadow-lg">
             <RoomListPanel
@@ -653,7 +602,12 @@ export default function KakaoMap() {
               getRoomSummary={getRoomSummary}
               favoriteRooms={favoriteRooms}
               addFavoriteRoom={addFavoriteRoom}
-              removeFavoriteRoom={removeFavoriteRoom}
+              removeFavoriteRoom={handleRemoveFavoriteRoom}
+              selectedCompareRoomIds={selectedCompareRoomIds}
+              toggleCompareRoom={toggleCompareRoom}
+              generateCompareReport={generateCompareReport}
+              isGeneratingReport={isGeneratingReport}
+              compareReport={compareReport}
             />
 
             <button
@@ -669,7 +623,7 @@ export default function KakaoMap() {
           </div>
         )}
 
-        {/* 매물 정보 패널 - 접힌 상태 */}
+        {/* 매물 정보 펼치기 버튼 */}
         {isRoomMap && !showRoomList && (
           <button
             type="button"

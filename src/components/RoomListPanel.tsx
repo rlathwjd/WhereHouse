@@ -11,6 +11,11 @@ type RoomListPanelProps = {
     favoriteRooms: Room[];
     addFavoriteRoom: (room: Room) => void;
     removeFavoriteRoom: (room: Room) => void;
+    selectedCompareRoomIds: string[];
+    toggleCompareRoom: (room: Room) => void;
+    generateCompareReport: () => void;
+    isGeneratingReport: boolean;
+    compareReport: string;
 };
 
 // 관심 매물 하트
@@ -45,6 +50,11 @@ export default function RoomListPanel({
     favoriteRooms,
     addFavoriteRoom,
     removeFavoriteRoom,
+    selectedCompareRoomIds,
+    toggleCompareRoom,
+    generateCompareReport,
+    isGeneratingReport,
+    compareReport
 }: RoomListPanelProps) {
     const isFavoriteCompareMode = homeMode === "favoriteCompare";
 
@@ -63,16 +73,32 @@ export default function RoomListPanel({
                 {/* 상단 헤더 */}
                 <div className="bg-white px-6 pt-6">
                     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 pb-5">
-                        <h3 className="shrink-0 whitespace-nowrap text-xl font-extrabold tracking-tight text-gray-950">
-                            {title ?? "매물 정보"}
-                        </h3>
-
                         <div className="flex shrink-0 items-center gap-2">
-                            <span className="rounded-full bg-gray-950 px-4 py-1.5 text-sm font-extrabold text-white">
+                            <h3 className="whitespace-nowrap text-xl font-extrabold tracking-tight text-gray-950">
+                                {title ?? "매물 정보"}
+                            </h3>
+
+                            {isFavoriteCompareMode && (
+                                <span className="rounded-full bg-gray-950 px-3 py-1 text-xs font-extrabold text-white">
+                                    {visibleRooms.length}개
+                                </span>
+                            )}
+                        </div>
+
+                        {isFavoriteCompareMode ? (
+                            <button
+                                type="button"
+                                onClick={generateCompareReport}
+                                disabled={selectedCompareRoomIds.length < 2 || isGeneratingReport}
+                                className="shrink-0 rounded-full bg-gray-950 px-4 py-1.5 text-sm font-extrabold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
+                            >
+                                {isGeneratingReport ? "분석 중..." : "분석 리포트"}
+                            </button>
+                        ) : (
+                            <span className="shrink-0 rounded-full bg-gray-950 px-4 py-1.5 text-sm font-extrabold text-white">
                                 매물 {visibleRooms.length}개
                             </span>
-
-                        </div>
+                        )}
                     </div>
 
                     <div className="h-px w-full bg-gray-200" />
@@ -93,6 +119,9 @@ export default function RoomListPanel({
                         <div className="space-y-3">
                             {visibleRooms.map((room) => {
                             const roomId = String((room as any).id ?? (room as any).room_id);
+                            
+                            const isFavoriteCompareMode = homeMode === "favoriteCompare";
+                            const isCompareSelected = selectedCompareRoomIds.includes(roomId);
 
                             const deposit = (room as any).deposit;
                             const rent = (room as any).rent;
@@ -133,14 +162,25 @@ export default function RoomListPanel({
                                     className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md"
                                 >
                                     <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="text-lg font-extrabold text-gray-950">
-                                                보증금 {deposit} / 월세 {rent}
-                                            </p>
+                                        <div className="flex items-start gap-3">
+                                            {isFavoriteCompareMode && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isCompareSelected}
+                                                    onChange={() => toggleCompareRoom(room)}
+                                                    className="mt-1 h-4 w-4 accent-gray-950"
+                                                />
+                                            )}
 
-                                            <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                                                {address}
-                                            </p>
+                                            <div>
+                                                <p className="text-lg font-extrabold text-gray-950">
+                                                    보증금 {deposit} / 월세 {rent}
+                                                </p>
+
+                                                <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                                                    {address}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         <button
@@ -153,7 +193,8 @@ export default function RoomListPanel({
 
                                                 addFavoriteRoom(room);
                                             }}
-                                            className="-translate-y-1.5 shrink-0 rounded-full p-2 transition hover:scale-110 active:scale-95">
+                                            className="-translate-y-1.5 shrink-0 rounded-full p-2 transition hover:scale-110 active:scale-95"
+                                        >
                                             <FavoriteHeart isFavorite={isFavorite} />
                                         </button>
                                     </div>
@@ -208,6 +249,15 @@ export default function RoomListPanel({
                                 </article>
                             );
                         })}
+
+                                {isFavoriteCompareMode && compareReport && (
+                                    <div className="mt-5 whitespace-pre-line rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm leading-7 text-gray-700">
+                                        <p className="mb-2 text-base font-extrabold text-gray-950">
+                                            관심 매물 비교 분석 리포트
+                                        </p>
+                                        {compareReport}
+                                    </div>
+                                )}
                     </div>
                 )}
             </div>
