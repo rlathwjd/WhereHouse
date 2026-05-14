@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Room } from "@/types/map";
-
+import { Heart } from "lucide-react";
 
 type RoomListPanelProps = {
     title?: string;
@@ -8,7 +8,31 @@ type RoomListPanelProps = {
     loadingRoomId: string | null;
     roomSummaries: Record<string, string>;
     getRoomSummary: (room: Room) => void;
+    favoriteRooms: Room[];
+    addFavoriteRoom: (room: Room) => void;
+    removeFavoriteRoom: (room: Room) => void;
 };
+
+function FavoriteHeart({ isFavorite }: { isFavorite: boolean }) {
+    return (
+        <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill={isFavorite ? "#ef4444" : "white"}
+            xmlns="http://www.w3.org/2000/svg"
+            className="drop-shadow-sm transition-all duration-200"
+        >
+            <path
+                d="M12 20.5C11.7 20.5 11.4 20.4 11.2 20.2C8.6 17.9 6.4 15.8 4.8 13.9C3.2 12 2.4 10.2 2.4 8.4C2.4 5.6 4.5 3.6 7.2 3.6C8.8 3.6 10.4 4.4 11.3 5.7C11.5 6 11.8 6 12 5.7C12.9 4.4 14.5 3.6 16.1 3.6C18.8 3.6 20.9 5.6 20.9 8.4C20.9 10.2 20.1 12 18.5 13.9C16.9 15.8 14.7 17.9 12.1 20.2C12 20.4 11.8 20.5 12 20.5Z"
+                stroke="#ef4444"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
 
 export default function RoomListPanel({
     title,
@@ -16,6 +40,9 @@ export default function RoomListPanel({
     loadingRoomId,
     roomSummaries,
     getRoomSummary,
+    favoriteRooms,
+    addFavoriteRoom,
+    removeFavoriteRoom,
 }: RoomListPanelProps) {
     const [openSummaryIds, setOpenSummaryIds] = useState<Record<string, boolean>>({});
     return (
@@ -23,14 +50,20 @@ export default function RoomListPanel({
             <div className="flex h-full flex-col bg-white">
                 {/* 상단 헤더 */}
                 <div className="bg-white px-6 pt-6">
-                    <div className="flex items-center justify-between gap-3 pb-5">
-                        <h3 className="text-xl font-extrabold tracking-tight text-gray-950">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 pb-5">
+                        <h3 className="shrink-0 whitespace-nowrap text-xl font-extrabold tracking-tight text-gray-950">
                             {title ?? "매물 정보"}
                         </h3>
 
-                        <span className="shrink-0 rounded-full bg-gray-950 px-4 py-1.5 text-sm font-extrabold text-white">
-                            매물 {visibleRooms.length}개
-                        </span>
+                        <div className="flex shrink-0 items-center gap-2">
+                            <span className="rounded-full bg-gray-950 px-4 py-1.5 text-sm font-extrabold text-white">
+                                매물 {visibleRooms.length}개
+                            </span>
+
+                            <button className="rounded-full bg-gray-950 px-4 py-1.5 text-sm font-extrabold text-white">
+                                관심 매물 비교
+                            </button>
+                        </div>
                     </div>
 
                     <div className="h-px w-full bg-gray-200" />
@@ -75,6 +108,15 @@ export default function RoomListPanel({
                             const isLoading = loadingRoomId === roomId;
 
                             const isSummaryOpen = openSummaryIds[roomId] ?? false;
+                            
+                            const isFavorite = favoriteRooms.some((favoriteRoom) => {
+                                const favoriteRoomId = String(
+                                    (favoriteRoom as any).id ?? (favoriteRoom as any).room_id
+                                );
+
+                                return favoriteRoomId === roomId;
+                            });
+
 
                             return (
                                 <article
@@ -91,6 +133,20 @@ export default function RoomListPanel({
                                                 {address}
                                             </p>
                                         </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (isFavorite) {
+                                                    removeFavoriteRoom(room);
+                                                    return;
+                                                }
+
+                                                addFavoriteRoom(room);
+                                            }}
+                                            className="-translate-y-1.5 shrink-0 rounded-full p-2 transition hover:scale-110 active:scale-95">
+                                            <FavoriteHeart isFavorite={isFavorite} />
+                                        </button>
                                     </div>
 
                                     <div className="mt-3 flex flex-wrap items-center gap-2">

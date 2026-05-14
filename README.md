@@ -5,10 +5,13 @@
 
 
 ## 주요 기능
-- 회사 위치 검색 및 설정
-- CSV 기반 매물 데이터 저장(supabase)
+- 회사 위치 기준 매물 탐색
+- 지역·예산·매물 유형 등 조건에 따라 매물 필터링
 - 카카오맵 기반 매물 시각화
-- 매물 조건 필터링
+- 매물 장단점 브리핑
+- 관심 매물 비교 분석 리포트(예정, 로컬에서만 구현 중)
+- 사용자 맞춤 신규 매물 알림(예정)
+
 
 ## 기술 스택
 - Next.js, TypeScript
@@ -27,7 +30,7 @@
 ## 실행 방법
 - npm install (패키지 설치)
 - npm run dev (개발 서버 실행)
-- npx tsx scr/scripts/seed_rooms.ts (매물 데이터 supabase에 저장)
+- npx tsx src/scripts/seed_rooms.ts (매물 데이터 supabase에 저장)
 
 ## 사이트 접속
 https://where-house-rouge.vercel.app/

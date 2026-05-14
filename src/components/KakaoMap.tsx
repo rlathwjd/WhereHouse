@@ -107,6 +107,8 @@ export default function KakaoMap() {
       ? "조건에 맞는 매물"
       : "전체 매물";
 
+  const [favoriteRooms, setFavoriteRooms] = useState<Room[]>([]);
+
   const initializeMap = () => {
     window.kakao.maps.load(() => {
       const container = document.getElementById("map");
@@ -331,6 +333,34 @@ export default function KakaoMap() {
     isRoomSizeTouched,
   ]);
 
+  // 관심 매물 추가
+  const addFavoriteRoom = (room: Room) => {
+    const roomId = String((room as any).id ?? (room as any).room_id);
+
+    setFavoriteRooms((prev) => {
+      const alreadyExists = prev.some(
+        (item) => String((item as any).id ?? (item as any).room_id) === roomId
+      );
+
+      if (alreadyExists) {
+        return prev;
+      }
+
+      return [...prev, room];
+    });
+  };
+
+  // 관심 매물 제거
+  const removeFavoriteRoom = (room: Room) => {
+    const roomId = String((room as any).id ?? (room as any).room_id);
+
+    setFavoriteRooms((prev) =>
+      prev.filter(
+        (item) => String((item as any).id ?? (item as any).room_id) !== roomId
+      )
+    );
+  };
+
   return (
     <>
       <Script
@@ -498,6 +528,9 @@ export default function KakaoMap() {
               loadingRoomId={loadingRoomId}
               roomSummaries={roomSummaries}
               getRoomSummary={getRoomSummary}
+              favoriteRooms={favoriteRooms}
+              addFavoriteRoom={addFavoriteRoom}
+              removeFavoriteRoom={removeFavoriteRoom}
             />
 
             <button
