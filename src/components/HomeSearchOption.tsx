@@ -40,6 +40,15 @@ export default function HomeSearchOption({
             setShowHomeFilters(false);
             setShowRoomList(false);
         }
+
+        if (mode === "favoriteCompare") {
+            setShowHomeFilters(false);
+            setShowRoomList(true);
+
+            setTimeout(() => {
+                mapRef.current?.relayout();
+            }, 300);
+        }
     };
 
     return (

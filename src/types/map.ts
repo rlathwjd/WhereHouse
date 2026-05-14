@@ -30,4 +30,4 @@ export type FilterMenu =
     | "rooms"
     | null;
 
-export type HomeMode = "condition" | "localReview" | null;
+export type HomeMode = "condition" | "localReview" | "favoriteCompare" |null;

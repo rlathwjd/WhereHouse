@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { Room } from "@/types/map";
-import { Heart } from "lucide-react";
+import type { Room, HomeMode } from "@/types/map";
 
 type RoomListPanelProps = {
+    homeMode: HomeMode;
     title?: string;
     visibleRooms: Room[];
     loadingRoomId: string | null;
@@ -13,6 +13,7 @@ type RoomListPanelProps = {
     removeFavoriteRoom: (room: Room) => void;
 };
 
+// 관심 매물 하트
 function FavoriteHeart({ isFavorite }: { isFavorite: boolean }) {
     return (
         <svg
@@ -35,6 +36,7 @@ function FavoriteHeart({ isFavorite }: { isFavorite: boolean }) {
 }
 
 export default function RoomListPanel({
+    homeMode,
     title,
     visibleRooms,
     loadingRoomId,
@@ -44,6 +46,16 @@ export default function RoomListPanel({
     addFavoriteRoom,
     removeFavoriteRoom,
 }: RoomListPanelProps) {
+    const isFavoriteCompareMode = homeMode === "favoriteCompare";
+
+    const emptyTitle = isFavoriteCompareMode
+        ? "아직 관심 매물이 없어요"
+        : "표시할 매물이 없어요";
+
+    const emptyDescription = isFavoriteCompareMode
+        ? "마음에 드는 매물의 하트를 눌러 관심 매물을 추가해보세요."
+        : "조건을 조금 넓히거나 다른 지역을 선택해보세요.";
+
     const [openSummaryIds, setOpenSummaryIds] = useState<Record<string, boolean>>({});
     return (
         <div className="flex h-full flex-col bg-white">
@@ -60,29 +72,26 @@ export default function RoomListPanel({
                                 매물 {visibleRooms.length}개
                             </span>
 
-                            <button className="rounded-full bg-gray-950 px-4 py-1.5 text-sm font-extrabold text-white">
-                                관심 매물 비교
-                            </button>
                         </div>
                     </div>
 
                     <div className="h-px w-full bg-gray-200" />
                 </div>
 
-            {/* 매물 리스트 */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-                {visibleRooms.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed bg-gray-50 px-6 text-center">
-                        <p className="text-base font-bold text-gray-800">
-                            표시할 매물이 없어요
-                        </p>
-                        <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                            조건을 조금 넓히거나 다른 지역을 선택해보세요.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {visibleRooms.map((room) => {
+                {/* 매물 리스트 */}
+                <div className="flex-1 overflow-y-auto px-5 py-4">
+                    {visibleRooms.length === 0 ? (
+                        <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed bg-gray-50 px-6 text-center">
+                            <p className="text-base font-bold text-gray-800">
+                                {emptyTitle}
+                            </p>
+                            <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                                {emptyDescription}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {visibleRooms.map((room) => {
                             const roomId = String((room as any).id ?? (room as any).room_id);
 
                             const deposit = (room as any).deposit;

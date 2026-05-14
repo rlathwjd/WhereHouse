@@ -74,6 +74,46 @@ export function useKakaoRoomCluster({
         setShowRoomList(false);
     };
 
+    const showFavoriteRoomClusters = (rooms: Room[]) => {
+        if (!mapRef.current || !window.kakao?.maps) return;
+
+        markersRef.current.forEach((marker) => marker.setMap(null));
+        overlaysRef.current.forEach((overlay) => overlay.setMap(null));
+
+        markersRef.current = [];
+        overlaysRef.current = [];
+
+        selectedOverlaysRef.current.clear();
+        selectedGroupsRef.current.clear();
+
+        if (clustererRef.current) {
+            clustererRef.current.clear();
+            clustererRef.current = null;
+        }
+
+        setFilteredRooms(rooms);
+        setSelectedClusterRooms([]);
+        setSelectedClusterName(null);
+        setShowRoomList(true);
+
+        if (rooms.length === 0) {
+            return;
+        }
+
+        const groups = groupRoomsByRegion(rooms);
+
+        groups.forEach((group) => {
+            createRegionOverlay({
+                ...group,
+                matchedRooms: group.rooms,
+                isMatched: true,
+                hasFilter: false,
+            });
+        });
+
+        fitMapToRooms(rooms);
+    };
+
     const getRoomId = (room: Room) => {
         return String((room as any).id ?? (room as any).room_id);
     };
@@ -505,5 +545,6 @@ export function useKakaoRoomCluster({
     return {
         clearRoomClusters,
         showRoomClusters,
+        showFavoriteRoomClusters,
     };
 }

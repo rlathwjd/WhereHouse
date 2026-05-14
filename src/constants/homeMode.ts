@@ -15,6 +15,11 @@ export const HOME_MODE_OPTIONS: {
             title: "생활권 후기",
             description: "지역의 실제 생활/통근 경험 비교",
         },
+        {
+            key: "favoriteCompare",
+            title: "관심 매물 비교",
+            description: "관심 매물 비교를 통한 분석 리포트 확인",
+        },
     ];
 
 export const HOME_MODE_TEXT = HOME_MODE_OPTIONS.reduce(
