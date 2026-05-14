@@ -275,6 +275,8 @@ export default function KakaoMap() {
     setSelectedTradeTypes([]);
     setSelectedApprovalDate(null);
     setSelectedRooms([]);
+    setShowRoomList(false);
+    setShowHomeFilters(false);
 
     setDeposit(7000);
     setRent(70);
@@ -366,14 +368,9 @@ export default function KakaoMap() {
               setKeyword("");
 
               clearRoomClusters();
-              setFilteredRooms([]);
-              setSelectedClusterRooms([]);
-              setSelectedClusterName(null);
+              resetHomeFilters();
 
               setHomeMode(null);
-              setShowHomeFilters(false);
-              setOpenFilterMenu(null);
-
               setShowHomeOptions(true);
             }}
             className="flex min-h-[80px] w-full items-center justify-center gap-4 active:scale-[0.98]"
@@ -416,6 +413,7 @@ export default function KakaoMap() {
           setShowRoomList={setShowRoomList}
           showRoomClusters={showRoomClusters}
           mapRef={mapRef}
+          resetHomeFilters={resetHomeFilters}
         />
       )}
 
@@ -434,15 +432,11 @@ export default function KakaoMap() {
             <button
               type="button"
               onClick={() => {
+                clearRoomClusters();
                 resetHomeFilters();
-                setFilteredRooms([]);
-                setSelectedClusterRooms([]);
-                setSelectedClusterName(null);
 
                 setHomeMode(null);
                 setShowHomeOptions(true);
-                setShowHomeFilters(false);
-                setOpenFilterMenu(null);
               }}
               className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
             >

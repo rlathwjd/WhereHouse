@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Room } from "@/types/map";
+
 
 type RoomListPanelProps = {
     title?: string;
@@ -15,6 +17,7 @@ export default function RoomListPanel({
     roomSummaries,
     getRoomSummary,
 }: RoomListPanelProps) {
+    const [openSummaryIds, setOpenSummaryIds] = useState<Record<string, boolean>>({});
     return (
         <div className="flex h-full flex-col bg-white">
             <div className="flex h-full flex-col bg-white">
@@ -71,6 +74,8 @@ export default function RoomListPanel({
                             const summary = roomSummaries[roomId];
                             const isLoading = loadingRoomId === roomId;
 
+                            const isSummaryOpen = openSummaryIds[roomId] ?? false;
+
                             return (
                                 <article
                                     key={roomId}
@@ -100,19 +105,40 @@ export default function RoomListPanel({
                                         )}
                                     </div>
 
-                                    {summary && (
-                                        <div className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm leading-relaxed text-gray-700">
+                                    {summary && isSummaryOpen && (
+                                        <div className="mt-4 whitespace-pre-line rounded-xl bg-gray-50 px-4 py-3 text-sm leading-7 text-gray-700">
                                             {summary}
                                         </div>
                                     )}
 
                                     <button
                                         type="button"
-                                        onClick={() => getRoomSummary(room)}
+                                        onClick={() => {
+                                            if (summary) {
+                                                setOpenSummaryIds((prev) => ({
+                                                    ...prev,
+                                                    [roomId]: !isSummaryOpen,
+                                                }));
+                                                return;
+                                            }
+
+                                            setOpenSummaryIds((prev) => ({
+                                                ...prev,
+                                                [roomId]: true,
+                                            }));
+
+                                            getRoomSummary(room);
+                                        }}
                                         disabled={isLoading}
                                         className="mt-4 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
                                     >
-                                        {isLoading ? "요약 중..." : "매물 장단점 요약"}
+                                        {isLoading
+                                            ? "요약 중..."
+                                            : summary
+                                                ? isSummaryOpen
+                                                    ? "닫기"
+                                                    : "다시 보기"
+                                                : "매물 장단점 요약"}
                                     </button>
                                 </article>
                             );

@@ -8,6 +8,7 @@ type Props = {
     setShowRoomList: React.Dispatch<React.SetStateAction<boolean>>;
     showRoomClusters: () => void;
     mapRef: React.RefObject<any>;
+    resetHomeFilters: () => void;
 };
 
 export default function HomeSearchOption({
@@ -17,8 +18,11 @@ export default function HomeSearchOption({
     setShowRoomList,
     showRoomClusters,
     mapRef,
+    resetHomeFilters,
 }: Props) {
     const handleSelectMode = (mode: Exclude<HomeMode, null>) => {
+        resetHomeFilters?.();
+
         setHomeMode(mode);
         setShowHomeOptions(false);
 

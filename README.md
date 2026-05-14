@@ -12,7 +12,7 @@
 
 ## 기술 스택
 - Next.js, TypeScript
-- Supabase, PostreSQL
+- Supabase, PostgreSQL
 - Kakao Map API, Kakao Local API
 
 ## 환경 변수 설정
@@ -22,6 +22,7 @@
 - NEXT_PUBLIC_SUPABASE_ANON_KEY="supabase_anon_key" 입력
 - SUPABASE_SERVICE_ROLE_KEY="supabase_service_role_key" 입력
 - KAKAO_REST_API_KEY="kakao_rest_api_key" 입력
+- GROQ_API_KEY="groq_api_key" 입력
 
 ## 실행 방법
 - npm install (패키지 설치)

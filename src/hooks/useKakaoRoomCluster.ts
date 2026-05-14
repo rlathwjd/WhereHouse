@@ -442,12 +442,15 @@ export function useKakaoRoomCluster({
 
                         return res.json();
                     }),
-                    fetch(`/api/rooms${queryString}`).then((res) => {
+                    fetch(`/api/rooms${queryString}`).then(async (res) => {
                         if (!res.ok) {
-                            throw new Error("조건 매물 데이터를 불러오지 못했습니다.");
+                            console.warn("조건에 맞는 매물이 없습니다.");
+                            return [];
                         }
 
-                        return res.json();
+                        const data = await res.json();
+
+                        return Array.isArray(data) ? data : [];
                     }),
                 ])
                 : await fetch("/api/rooms")

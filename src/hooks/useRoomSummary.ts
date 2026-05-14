@@ -6,7 +6,9 @@ export function useRoomSummary(confirmedCompany: Place | null) {
     const [loadingRoomId, setLoadingRoomId] = useState<string | null>(null);
 
     const getRoomSummary = async (room: Room) => {
-        setLoadingRoomId(room.room_id);
+        const roomId = String((room as any).id ?? (room as any).room_id);
+
+        setLoadingRoomId(roomId);
 
         try {
             const res = await fetch("/api/ai/room-summary", {
@@ -27,21 +29,21 @@ export function useRoomSummary(confirmedCompany: Place | null) {
             if (!res.ok) {
                 setRoomSummaries((prev) => ({
                     ...prev,
-                    [room.room_id]: data.error || "요약 생성에 실패했습니다.",
+                    [roomId]: data.error || "요약 생성에 실패했습니다.",
                 }));
                 return;
             }
 
             setRoomSummaries((prev) => ({
                 ...prev,
-                [room.room_id]: data.summary || "요약 생성에 실패했습니다.",
+                [roomId]: data.summary || "요약 생성에 실패했습니다.",
             }));
         } catch (error) {
             console.error("AI 요약 오류:", error);
 
             setRoomSummaries((prev) => ({
                 ...prev,
-                [room.room_id]: "요약 생성 중 오류가 발생했습니다.",
+                [roomId]: "요약 생성 중 오류가 발생했습니다.",
             }));
         } finally {
             setLoadingRoomId(null);

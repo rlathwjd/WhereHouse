@@ -43,17 +43,42 @@ export async function GET(request: Request) {
 
         // 매물 유형 필터
         if (roomTypes.length > 0) {
-            query = query.in("room_type", roomTypes);
+            const expandedRoomTypes = roomTypes.flatMap((type) => {
+                const trimmedType = type.trim();
+
+                if (trimmedType === "원룸/투룸") {
+                    return ["원룸", "투룸", "원룸/투룸"];
+                }
+
+                return [trimmedType];
+            });
+
+            const roomTypeOr = expandedRoomTypes
+                .filter(Boolean)
+                .map((type) => `room_type.ilike.%${type}%`)
+                .join(",");
+
+            if (roomTypeOr) {
+                query = query.or(roomTypeOr);
+            }
         }
 
         // 거래 유형 필터
         if (tradeTypes.length > 0) {
-            query = query.in("trade_type", tradeTypes);
+            const tradeTypeOr = tradeTypes
+                .map((type) => `trade_type.ilike.%${type}%`)
+                .join(",");
+
+            query = query.or(tradeTypeOr);
         }
 
         // 방 개수 필터
         if (rooms.length > 0) {
-            query = query.in("rooms", rooms);
+            const roomsOr = rooms
+                .map((room) => `rooms.ilike.%${room}%`)
+                .join(",");
+
+            query = query.or(roomsOr);
         }
 
         // 보증금 필터

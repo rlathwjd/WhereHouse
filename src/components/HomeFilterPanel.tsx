@@ -16,11 +16,13 @@ type RegionGroupKey = "seoul" | "gyeonggi" | "incheon";
 const REGION_GROUPS: {
   key: RegionGroupKey;
   label: string;
+  valuePrefix: string;
   items: string[];
 }[] = [
     {
       key: "seoul",
       label: "서울",
+      valuePrefix: "서울특별시",
       items: [
         "강남구",
         "강동구",
@@ -52,6 +54,7 @@ const REGION_GROUPS: {
     {
       key: "gyeonggi",
       label: "경기",
+      valuePrefix: "경기도",
       items: [
         "가평군",
         "고양시",
@@ -89,6 +92,7 @@ const REGION_GROUPS: {
     {
       key: "incheon",
       label: "인천",
+      valuePrefix: "인천광역시",
       items: [
         "강화군",
         "계양구",
@@ -234,20 +238,27 @@ export default function HomeFilterPanel({
     return `${value.toLocaleString()}만원`;
   };
   
-  const activeRegionItems =
-    REGION_GROUPS.find((group) => group.key === activeRegionGroup)?.items ?? [];
+  const activeRegionGroupData = REGION_GROUPS.find(
+    (group) => group.key === activeRegionGroup
+  );
 
+  const activeRegionItems = activeRegionGroupData?.items ?? [];
+
+  const activeRegionValues = activeRegionItems.map(
+    (item) => `${activeRegionGroupData?.valuePrefix} ${item}`
+  );
+  
   const isAllActiveRegionsSelected =
-    activeRegionItems.length > 0 &&
-    activeRegionItems.every((item) => selectedRegions.includes(item));
+    activeRegionValues.length > 0 &&
+    activeRegionValues.every((value) => selectedRegions.includes(value));
 
   const toggleAllActiveRegions = () => {
     setSelectedRegions((prev) => {
       if (isAllActiveRegionsSelected) {
-        return prev.filter((item) => !activeRegionItems.includes(item));
+        return prev.filter((item) => !activeRegionValues.includes(item));
       }
 
-      return Array.from(new Set([...prev, ...activeRegionItems]));
+      return Array.from(new Set([...prev, ...activeRegionValues]));
     });
   };
 
@@ -256,8 +267,12 @@ export default function HomeFilterPanel({
     const partialRegions: string[] = [];
 
     REGION_GROUPS.forEach((group) => {
-      const isAllSelected = group.items.every((item) =>
-        selectedRegions.includes(item)
+      const groupValues = group.items.map(
+        (item) => `${group.valuePrefix} ${item}`
+      );
+
+      const isAllSelected = groupValues.every((value) =>
+        selectedRegions.includes(value)
       );
 
       if (isAllSelected) {
@@ -266,8 +281,10 @@ export default function HomeFilterPanel({
       }
 
       group.items.forEach((item) => {
-        if (selectedRegions.includes(item)) {
-          partialRegions.push(item);
+        const value = `${group.valuePrefix} ${item}`;
+
+        if (selectedRegions.includes(value)) {
+          partialRegions.push(`${group.label} ${item}`);
         }
       });
     });
@@ -348,21 +365,22 @@ export default function HomeFilterPanel({
                   </p>
 
                   <span className="text-sm font-semibold text-slate-500">
-                    {activeRegionItems.filter((item) => selectedRegions.includes(item)).length}
+                    {activeRegionValues.filter((value) => selectedRegions.includes(value)).length}
                     /{activeRegionItems.length} 선택
                   </span>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   {activeRegionItems.map((item) => {
-                    const isSelected = selectedRegions.includes(item);
+                    const value = `${activeRegionGroupData?.valuePrefix} ${item}`;
+                    const isSelected = selectedRegions.includes(value);
 
                     return (
                       <button
-                        key={item}
+                        key={value}
                         type="button"
                         onClick={() =>
-                          toggleOption(item, selectedRegions, setSelectedRegions)
+                          toggleOption(value, selectedRegions, setSelectedRegions)
                         }
                         className={pillClass(isSelected)}
                       >
