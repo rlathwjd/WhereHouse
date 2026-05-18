@@ -416,7 +416,6 @@ export default function KakaoMap() {
     isBudgetTouched,
     isRoomSizeTouched,
     loadRoomsOnce,
-    showRoomClusters,
   ]);
 
   /**

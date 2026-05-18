@@ -568,6 +568,7 @@ export function useKakaoRoomCluster({
             setSelectedClusterRooms([]);
             setSelectedClusterName(null);
         }
+
     };
 
     return {

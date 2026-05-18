@@ -1,15 +1,26 @@
 import { useState } from "react";
+import {
+  MapPin,
+  Home,
+  Repeat2,
+  Wallet,
+  Maximize2,
+  Bed,
+  CalendarDays,
+  Search,
+} from "lucide-react";
+
 import type { FilterMenu } from "@/types/map";
 
-const FILTER_MENUS: [FilterMenu, string][] = [
-  ["region", "지역"],
-  ["roomType", "매물 유형"],
-  ["trade", "거래 유형"],
-  ["budget", "가격"],
-  ["roomSize", "방 크기"],
-  ["rooms", "방 개수"],
-  ["approvalDate", "사용승인일"],
-];
+const FILTER_MENUS = [
+  { key: "region", label: "지역", icon: MapPin },
+  { key: "roomType", label: "매물 유형", icon: Home },
+  { key: "trade", label: "거래 유형", icon: Repeat2 },
+  { key: "budget", label: "가격", icon: Wallet },
+  { key: "roomSize", label: "방 크기", icon: Maximize2 },
+  { key: "rooms", label: "방 개수", icon: Bed },
+  { key: "approvalDate", label: "사용승인일", icon: CalendarDays },
+] as const;
 
 type RegionGroupKey = "seoul" | "gyeonggi" | "incheon";
 
@@ -122,7 +133,7 @@ type Props = {
 
   selectedRegions: string[];
   setSelectedRegions: React.Dispatch<React.SetStateAction<string[]>>;
-  
+
   selectedRoomTypes: string[];
   setSelectedRoomTypes: React.Dispatch<React.SetStateAction<string[]>>;
 
@@ -201,9 +212,7 @@ export default function HomeFilterPanel({
     useState<RegionGroupKey>("seoul");
 
   const toggleOption = (
-    
     value: string,
-    selectedValues: string[],
     setSelectedValues: React.Dispatch<React.SetStateAction<string[]>>
   ) => {
     setSelectedValues((prev) =>
@@ -237,7 +246,7 @@ export default function HomeFilterPanel({
 
     return `${value.toLocaleString()}만원`;
   };
-  
+
   const activeRegionGroupData = REGION_GROUPS.find(
     (group) => group.key === activeRegionGroup
   );
@@ -247,7 +256,7 @@ export default function HomeFilterPanel({
   const activeRegionValues = activeRegionItems.map(
     (item) => `${activeRegionGroupData?.valuePrefix} ${item}`
   );
-  
+
   const isAllActiveRegionsSelected =
     activeRegionValues.length > 0 &&
     activeRegionValues.every((value) => selectedRegions.includes(value));
@@ -295,7 +304,7 @@ export default function HomeFilterPanel({
   return (
     <div>
       <div className="flex flex-wrap gap-3 text-sm">
-        {FILTER_MENUS.map(([key, label]) => (
+        {FILTER_MENUS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             type="button"
@@ -310,11 +319,12 @@ export default function HomeFilterPanel({
                 setIsRoomSizeTouched(true);
               }
             }}
-            className={`rounded-xl border px-4 py-3 font-semibold transition ${openFilterMenu === key
-                ? "border-slate-900 bg-[var(--color-primary)] text-white"
-                : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-3 font-bold transition ${openFilterMenu === key
+              ? "border-slate-900 bg-[var(--color-primary)] text-white shadow-sm"
+              : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50 hover:text-slate-950"
               }`}
           >
+            <Icon size={17} strokeWidth={2.4} />
             {label}
           </button>
         ))}
@@ -347,8 +357,8 @@ export default function HomeFilterPanel({
                         type="button"
                         onClick={() => setActiveRegionGroup(group.key)}
                         className={`rounded-full border px-4 py-2 text-base font-semibold transition ${isActive
-                            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
-                            : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
+                          ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                          : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
                           }`}
                       >
                         {group.label}
@@ -372,22 +382,22 @@ export default function HomeFilterPanel({
 
                 <div className="flex flex-wrap gap-2">
                   {activeRegionItems.map((item) => {
-  const value = `${activeRegionGroupData?.valuePrefix} ${item}`;
-  const isSelected = selectedRegions.includes(value);
+                    const value = `${activeRegionGroupData?.valuePrefix} ${item}`;
+                    const isSelected = selectedRegions.includes(value);
 
-  return (
-    <button
-      key={value}
-      type="button"
-      onClick={() =>
-        toggleOption(value, selectedRegions, setSelectedRegions)
-      }
-      className={pillClass(isSelected)}
-    >
-      {item}
-    </button>
-  );
-})}
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          toggleOption(value, setSelectedRegions)
+                        }
+                        className={pillClass(isSelected)}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </>
@@ -407,7 +417,6 @@ export default function HomeFilterPanel({
                       onClick={() =>
                         toggleOption(
                           item,
-                          selectedRoomTypes,
                           setSelectedRoomTypes
                         )
                       }
@@ -436,7 +445,6 @@ export default function HomeFilterPanel({
                       onClick={() =>
                         toggleOption(
                           item,
-                          selectedTradeTypes,
                           setSelectedTradeTypes
                         )
                       }
@@ -542,7 +550,7 @@ export default function HomeFilterPanel({
                       key={item}
                       type="button"
                       onClick={() =>
-                        toggleOption(item, selectedRooms, setSelectedRooms)
+                        toggleOption(item, setSelectedRooms)
                       }
                       className={pillClass(isSelected)}
                     >
@@ -560,23 +568,23 @@ export default function HomeFilterPanel({
 
               <div className="flex flex-wrap gap-2">
                 {APPROVAL_DATES.map((item) => {
-                    const isSelected = selectedApprovalDate === item;
+                  const isSelected = selectedApprovalDate === item;
 
-                    return (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() =>
-                          setSelectedApprovalDate((prev) =>
-                            prev === item ? null : item
-                          )
-                        }
-                        className={pillClass(isSelected)}
-                      >
-                        {item}
-                      </button>
-                    );
-                  }
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() =>
+                        setSelectedApprovalDate((prev) =>
+                          prev === item ? null : item
+                        )
+                      }
+                      className={pillClass(isSelected)}
+                    >
+                      {item}
+                    </button>
+                  );
+                }
                 )}
               </div>
             </>
@@ -584,10 +592,16 @@ export default function HomeFilterPanel({
         </div>
       )}
 
-      <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 p-5 shadow-sm">
-        <p className="mb-3 font-bold">선택한 조건</p>
+      <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 px-5 py-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Search size={18} strokeWidth={2.4} className="text-slate-900" />
 
-        <div className="flex flex-wrap gap-2 text-sm">
+          <p className="text-sm font-extrabold text-slate-900">
+            선택한 조건
+          </p>
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-2 pl-7 text-sm">
           {selectedRegions.length > 0 && (
             <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
               지역: {getRegionConditionText()}
@@ -617,8 +631,7 @@ export default function HomeFilterPanel({
               </span>
 
               <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
-                월세: {confirmedRent >= 150 ? "무제한" : `${confirmedRent}만원`}{" "}
-                이하
+                월세: {confirmedRent >= 150 ? "무제한" : `${confirmedRent}만원`} 이하
               </span>
             </>
           )}
@@ -648,7 +661,7 @@ export default function HomeFilterPanel({
             !isRoomSizeTouched &&
             selectedRooms.length === 0 &&
             !selectedApprovalDate && (
-              <span className="text-sm text-gray-400">
+              <span className="text-sm font-medium text-gray-400">
                 아직 선택한 조건이 없습니다.
               </span>
             )}

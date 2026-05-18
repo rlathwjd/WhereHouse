@@ -1,7 +1,7 @@
 "use client";
 
 import { Dispatch, RefObject, SetStateAction } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 
 import type { Place, FilterMenu, HomeMode } from "@/types/map";
 
@@ -11,6 +11,9 @@ import CompanySearchPanel from "./CompanySearchPanel";
 import HomeCard from "./HomeCard";
 import HomeSearchModePanel from "./HomeSearchModePanel";
 import HomeFilterPanel from "./HomeFilterPanel";
+
+
+
 
 type LocationSearchPanelProps = {
     isHomeSearchPanelOpen: boolean;
@@ -357,7 +360,7 @@ export default function LocationSearchPanel({
                     )}
 
                     {homeMode && (
-                        <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 p-4 shadow-sm">
+                        <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                             <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
                                     <p className="text-base font-bold text-gray-900">
@@ -372,8 +375,9 @@ export default function LocationSearchPanel({
                                 <button
                                     type="button"
                                     onClick={handleChangeSearchMode}
-                                    className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                    className="flex shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
                                 >
+                                    <ArrowLeftRight size={16} strokeWidth={2.4} />
                                     찾기 방식 변경
                                 </button>
                             </div>

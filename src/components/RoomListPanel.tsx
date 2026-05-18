@@ -67,6 +67,7 @@ export default function RoomListPanel({
         : "조건을 조금 넓히거나 다른 지역을 선택해보세요.";
 
     const [openSummaryIds, setOpenSummaryIds] = useState<Record<string, boolean>>({});
+    const [focusedRoomId, setFocusedRoomId] = useState<string | null>(null);
     return (
         <div className="flex h-full flex-col bg-white">
             <div className="flex h-full flex-col bg-white">
@@ -118,150 +119,159 @@ export default function RoomListPanel({
                     ) : (
                         <div className="space-y-3">
                             {visibleRooms.map((room) => {
-                            const roomId = String((room as any).id ?? (room as any).room_id);
-                            
-                            const isFavoriteCompareMode = homeMode === "favoriteCompare";
-                            const isCompareSelected = selectedCompareRoomIds.includes(roomId);
+                                const roomId = String((room as any).id ?? (room as any).room_id);
 
-                            const deposit = (room as any).deposit;
-                            const rent = (room as any).rent;
-                            const address =
-                                (room as any).address ??
-                                (room as any).location ??
-                                (room as any).address_name ??
-                                "주소 정보 없음";
+                                const isFavoriteCompareMode = homeMode === "favoriteCompare";
+                                const isCompareSelected = selectedCompareRoomIds.includes(roomId);
 
-                            const roomType =
-                                (room as any).room_type ??
-                                (room as any).roomType ??
-                                "매물";
+                                const deposit = (room as any).deposit;
+                                const rent = (room as any).rent;
+                                const address =
+                                    (room as any).address ??
+                                    (room as any).location ??
+                                    (room as any).address_name ??
+                                    "주소 정보 없음";
 
-                            const size =
-                                (room as any).size ??
-                                (room as any).area ??
-                                (room as any).room_size ??
-                                null;
+                                const roomType =
+                                    (room as any).room_type ??
+                                    (room as any).roomType ??
+                                    "매물";
 
-                            const summary = roomSummaries[roomId];
-                            const isLoading = loadingRoomId === roomId;
+                                const size =
+                                    (room as any).size ??
+                                    (room as any).area ??
+                                    (room as any).room_size ??
+                                    null;
 
-                            const isSummaryOpen = openSummaryIds[roomId] ?? false;
-                            
-                            const isFavorite = favoriteRooms.some((favoriteRoom) => {
-                                const favoriteRoomId = String(
-                                    (favoriteRoom as any).id ?? (favoriteRoom as any).room_id
-                                );
+                                const summary = roomSummaries[roomId];
+                                const isLoading = loadingRoomId === roomId;
 
-                                return favoriteRoomId === roomId;
-                            });
+                                const isSummaryOpen = openSummaryIds[roomId] ?? false;
+
+                                const isFavorite = favoriteRooms.some((favoriteRoom) => {
+                                    const favoriteRoomId = String(
+                                        (favoriteRoom as any).id ?? (favoriteRoom as any).room_id
+                                    );
+
+                                    return favoriteRoomId === roomId;
+                                });
 
 
-                            return (
-                                <article
-                                    key={roomId}
-                                    className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-start gap-3">
-                                            {isFavoriteCompareMode && (
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isCompareSelected}
-                                                    onChange={() => toggleCompareRoom(room)}
-                                                    className="mt-1 h-4 w-4 accent-gray-950"
-                                                />
-                                            )}
+                                return (
+                                    <article
+                                        key={roomId}
+                                        onClick={() => setFocusedRoomId(roomId)}
+                                        className={`cursor-pointer rounded-2xl border bg-white p-4 shadow-sm transition ${focusedRoomId === roomId
+                                            ? "border-blue-400 ring-2 ring-blue-100"
+                                            : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                                            }`}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-start gap-3">
+                                                {isFavoriteCompareMode && (
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isCompareSelected}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onChange={() => toggleCompareRoom(room)}
+                                                        className="mt-1 h-4 w-4 accent-gray-950"
+                                                    />
+                                                )}
 
-                                            <div>
-                                                <p className="text-lg font-extrabold text-gray-950">
-                                                    보증금 {deposit} / 월세 {rent}
-                                                </p>
+                                                <div>
+                                                    <p className="text-lg font-extrabold text-gray-950">
+                                                        보증금 {deposit} / 월세 {rent}
+                                                    </p>
 
-                                                <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                                                    {address}
-                                                </p>
+                                                    <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                                                        {address}
+                                                    </p>
+                                                </div>
                                             </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+
+                                                    if (isFavorite) {
+                                                        removeFavoriteRoom(room);
+                                                        return;
+                                                    }
+
+                                                    addFavoriteRoom(room);
+                                                }}
+                                                className="-translate-y-1.5 shrink-0 rounded-full p-2 transition hover:scale-110 active:scale-95"
+                                            >
+                                                <FavoriteHeart isFavorite={isFavorite} />
+                                            </button>
                                         </div>
+
+                                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                                {roomType}
+                                            </span>
+
+                                            {size && (
+                                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                                    {size}㎡
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {summary && isSummaryOpen && (
+                                            <div className="mt-4 whitespace-pre-line rounded-xl bg-gray-50 px-4 py-3 text-sm leading-7 text-gray-700">
+                                                {summary}
+                                            </div>
+                                        )}
 
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                if (isFavorite) {
-                                                    removeFavoriteRoom(room);
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+
+                                                if (summary) {
+                                                    setOpenSummaryIds((prev) => ({
+                                                        ...prev,
+                                                        [roomId]: !isSummaryOpen,
+                                                    }));
                                                     return;
                                                 }
 
-                                                addFavoriteRoom(room);
-                                            }}
-                                            className="-translate-y-1.5 shrink-0 rounded-full p-2 transition hover:scale-110 active:scale-95"
-                                        >
-                                            <FavoriteHeart isFavorite={isFavorite} />
-                                        </button>
-                                    </div>
-
-                                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                                            {roomType}
-                                        </span>
-
-                                        {size && (
-                                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                                                {size}㎡
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {summary && isSummaryOpen && (
-                                        <div className="mt-4 whitespace-pre-line rounded-xl bg-gray-50 px-4 py-3 text-sm leading-7 text-gray-700">
-                                            {summary}
-                                        </div>
-                                    )}
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (summary) {
                                                 setOpenSummaryIds((prev) => ({
                                                     ...prev,
-                                                    [roomId]: !isSummaryOpen,
+                                                    [roomId]: true,
                                                 }));
-                                                return;
-                                            }
 
-                                            setOpenSummaryIds((prev) => ({
-                                                ...prev,
-                                                [roomId]: true,
-                                            }));
+                                                getRoomSummary(room);
+                                            }}
+                                            disabled={isLoading}
+                                            className="mt-4 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+                                        >
+                                            {isLoading
+                                                ? "요약 중..."
+                                                : summary
+                                                    ? isSummaryOpen
+                                                        ? "닫기"
+                                                        : "다시 보기"
+                                                    : "매물 장단점 요약"}
+                                        </button>
+                                    </article>
+                                );
+                            })}
 
-                                            getRoomSummary(room);
-                                        }}
-                                        disabled={isLoading}
-                                        className="mt-4 rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
-                                    >
-                                        {isLoading
-                                            ? "요약 중..."
-                                            : summary
-                                                ? isSummaryOpen
-                                                    ? "닫기"
-                                                    : "다시 보기"
-                                                : "매물 장단점 요약"}
-                                    </button>
-                                </article>
-                            );
-                        })}
-
-                                {isFavoriteCompareMode && compareReport && (
-                                    <div className="mt-5 whitespace-pre-line rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm leading-7 text-gray-700">
-                                        <p className="mb-2 text-base font-extrabold text-gray-950">
-                                            관심 매물 비교 분석 리포트
-                                        </p>
-                                        {compareReport}
-                                    </div>
-                                )}
-                    </div>
-                )}
+                            {isFavoriteCompareMode && compareReport && (
+                                <div className="mt-5 whitespace-pre-line rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm leading-7 text-gray-700">
+                                    <p className="mb-2 text-base font-extrabold text-gray-950">
+                                        관심 매물 비교 분석 리포트
+                                    </p>
+                                    {compareReport}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
-    </div>
     );
 }
