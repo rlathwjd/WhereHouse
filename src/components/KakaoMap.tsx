@@ -591,7 +591,7 @@ export default function KakaoMap() {
 
         {/* 매물 정보 패널 */}
         {isRoomMap && showRoomList && (
-          <div className="absolute left-0 top-0 z-10 h-full w-[380px] border-r bg-white shadow-lg">
+          <div className="absolute left-0 top-0 z-10 h-full w-[420px] border-r bg-white shadow-lg">
             <RoomListPanel
               homeMode={homeMode}
               title={panelTitle}
