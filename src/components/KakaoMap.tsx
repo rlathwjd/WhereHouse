@@ -122,6 +122,7 @@ export default function KakaoMap() {
     roomSummaries,
     loadingRoomId,
     getRoomSummary,
+    getSummaryKey,
   } = useRoomSummary(confirmedCompany);
 
   /**
@@ -161,6 +162,8 @@ export default function KakaoMap() {
         : "전체 매물";
 
   const mapHeight = isHomeSearchPanelOpen ? "h-[418px]" : "h-[620px]";
+
+  const [isSearchInMapArea, setIsSearchInMapArea] = useState(true);
 
   /**
    * 지도 초기화
@@ -582,6 +585,8 @@ export default function KakaoMap() {
         setIsRoomSizeTouched={setIsRoomSizeTouched}
         compareReport={compareReport}
       />
+
+
       {/* 지도 */}
       <div
         className={`relative mt-6 ${isHomeSearchPanelOpen ? "h-[418px]" : "h-[620px]"
@@ -589,9 +594,29 @@ export default function KakaoMap() {
       >
         <div id="map" className="h-full w-full bg-gray-200" />
 
+        {/* 지도 영역 내 재검색 버튼 */}
+
+        {isRoomMap && (
+          <button
+            type="button"
+            onClick={() => setIsSearchInMapArea((prev) => !prev)}
+            className={`absolute top-4 z-20 flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-800 shadow-md transition hover:bg-gray-50 ${showRoomList ? "left-[476px]" : "left-4"
+              }`}
+          >
+            <input
+              type="checkbox"
+              checked={isSearchInMapArea}
+              onChange={(e) => setIsSearchInMapArea(e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 accent-slate-950"
+            />
+            지도 영역 내 재검색
+          </button>
+        )}
+
         {/* 매물 정보 패널 */}
         {isRoomMap && showRoomList && (
-          <div className="absolute left-0 top-0 z-10 h-full w-[420px] border-r bg-white shadow-lg">
+          <div className="absolute left-0 top-0 z-10 h-full w-[460px] border-r bg-white shadow-lg">
             <RoomListPanel
               homeMode={homeMode}
               title={panelTitle}
@@ -599,6 +624,7 @@ export default function KakaoMap() {
               loadingRoomId={loadingRoomId}
               roomSummaries={roomSummaries}
               getRoomSummary={getRoomSummary}
+              getSummaryKey={getSummaryKey}
               favoriteRooms={favoriteRooms}
               addFavoriteRoom={addFavoriteRoom}
               removeFavoriteRoom={handleRemoveFavoriteRoom}

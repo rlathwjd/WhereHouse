@@ -365,11 +365,11 @@ export default function LocationSearchPanel({
                 <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div className="mb-5 flex items-start justify-between gap-4">
                         <div>
-                            <p className="text-base font-bold text-gray-900">
+                            <p className="text-sm font-bold text-gray-900">
                                 {HOME_MODE_TEXT[homeMode].title}
                             </p>
 
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-xs text-gray-500">
                                 {HOME_MODE_TEXT[homeMode].description}
                             </p>
                         </div>
@@ -377,7 +377,7 @@ export default function LocationSearchPanel({
                         <button
                             type="button"
                             onClick={handleChangeSearchMode}
-                            className="flex shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
+                            className="flex shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
                         >
                             <ArrowLeftRight size={16} strokeWidth={2.4} />
                             찾기 방식 변경

@@ -223,7 +223,7 @@ export default function HomeFilterPanel({
   };
 
   const pillClass = (isSelected: boolean) =>
-    `rounded-full border px-4 py-2 text-sm font-semibold transition ${isSelected
+    `rounded-full border px-4 py-2 text-xs font-semibold transition ${isSelected
       ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
       : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-[var(--color-bg)]"
     }`;
@@ -303,6 +303,7 @@ export default function HomeFilterPanel({
 
   return (
     <div>
+      {/* 조건 필터 */}
       <div className="flex flex-wrap gap-3 text-sm">
         {FILTER_MENUS.map(({ key, label, icon: Icon }) => (
           <button
@@ -330,20 +331,13 @@ export default function HomeFilterPanel({
         ))}
       </div>
 
+      {/* 조건 필터 클릭 시 나오는 화면 */}
       {openFilterMenu && (
         <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 p-5 shadow-sm">
           {openFilterMenu === "region" && (
             <>
               <div className="mb-4 flex items-center justify-between gap-3">
                 <p className="font-bold">지역</p>
-
-                <button
-                  type="button"
-                  onClick={toggleAllActiveRegions}
-                  className="rounded-full border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-gray-50"
-                >
-                  {isAllActiveRegionsSelected ? "전체 해제" : "전체 선택"}
-                </button>
               </div>
 
               <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -356,28 +350,40 @@ export default function HomeFilterPanel({
                         key={group.key}
                         type="button"
                         onClick={() => setActiveRegionGroup(group.key)}
-                        className={`rounded-full border px-4 py-2 text-base font-semibold transition ${isActive
+                        className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${isActive
                           ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
                           : "border-[var(--color-border)] bg-white text-slate-700 hover:bg-gray-50"
                           }`}
                       >
                         {group.label}
                       </button>
+
+
                     );
                   })}
                 </div>
 
                 <div className="my-4 border-t border-gray-200" />
 
-                <div className="mb-3 flex items-center gap-2">
-                  <p className="text-sm font-bold text-slate-700">
-                    {REGION_GROUPS.find((group) => group.key === activeRegionGroup)?.label} 지역
-                  </p>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-slate-700">
+                      {REGION_GROUPS.find((group) => group.key === activeRegionGroup)?.label} 지역
+                    </p>
 
-                  <span className="text-sm font-semibold text-slate-500">
-                    {activeRegionValues.filter((value) => selectedRegions.includes(value)).length}
-                    /{activeRegionItems.length} 선택
-                  </span>
+                    <span className="text-sm font-semibold text-slate-500">
+                      {activeRegionValues.filter((value) => selectedRegions.includes(value)).length}
+                      /{activeRegionItems.length} 선택
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={toggleAllActiveRegions}
+                    className="shrink-0 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:border-slate-900 hover:bg-gray-50 hover:text-slate-950"
+                  >
+                    {isAllActiveRegionsSelected ? "전체 해제" : "전체 선택"}
+                  </button>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -590,8 +596,10 @@ export default function HomeFilterPanel({
             </>
           )}
         </div>
-      )}
+      )
+      }
 
+      {/* 선택한 조건 */}
       <div className="mt-4 rounded-2xl border border-gray-300 bg-gray-50 px-5 py-4 shadow-sm">
         <div className="flex items-center gap-2">
           <Search size={18} strokeWidth={2.4} className="text-slate-900" />
@@ -601,7 +609,7 @@ export default function HomeFilterPanel({
           </p>
         </div>
 
-        <div className="mt-2 flex flex-wrap gap-2 pl-7 text-sm">
+        <div className="mt-3 flex flex-wrap gap-2 pl-7 text-xs">
           {selectedRegions.length > 0 && (
             <span className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-white">
               지역: {getRegionConditionText()}
@@ -667,7 +675,7 @@ export default function HomeFilterPanel({
             )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 

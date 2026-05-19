@@ -1,6 +1,14 @@
 import { useState } from "react";
 import type { Room, HomeMode } from "@/types/map";
-import { Info } from "lucide-react";
+import {
+    Info,
+    Bus,
+    CircleDollarSign,
+    ThumbsUp,
+    TriangleAlert,
+    ClipboardList,
+    Sparkles,
+} from "lucide-react";
 
 type RoomListPanelProps = {
     homeMode: HomeMode;
@@ -9,6 +17,7 @@ type RoomListPanelProps = {
     loadingRoomId: string | null;
     roomSummaries: Record<string, string>;
     getRoomSummary: (room: Room) => void;
+    getSummaryKey: (room: Room) => string;
     favoriteRooms: Room[];
     addFavoriteRoom: (room: Room) => void;
     removeFavoriteRoom: (room: Room) => void;
@@ -41,6 +50,69 @@ function FavoriteHeart({ isFavorite }: { isFavorite: boolean }) {
     );
 }
 
+function AiSummaryView({ summary }: { summary: string }) {
+    const summaryItems = [
+        {
+            key: "교통",
+            icon: Bus,
+            iconClassName: "text-gray-500",
+        },
+        {
+            key: "가격",
+            icon: CircleDollarSign,
+            iconClassName: "text-gray-500",
+        },
+        {
+            key: "장점",
+            icon: ThumbsUp,
+            iconClassName: "text-gray-500",
+        },
+        {
+            key: "단점",
+            icon: TriangleAlert,
+            iconClassName: "text-amber-500",
+        },
+        {
+            key: "참고",
+            icon: ClipboardList,
+            iconClassName: "text-gray-500",
+        },
+    ];
+
+    const getSummaryValue = (key: string) => {
+        const line = summary
+            .split("\n")
+            .map((item) => item.trim())
+            .find((item) => item.startsWith(`${key}:`));
+
+        return (
+            line?.replace(`${key}:`, "").trim() ||
+            "제공된 정보만으로는 판단하기 어려워요."
+        );
+    };
+
+    return (
+        <div>
+            <div className="space-y-2 text-xs leading-5 text-gray-700">
+                {summaryItems.map(({ key, icon: Icon, iconClassName }) => (
+                    <div key={key} className="flex items-start gap-2">
+                        <Icon
+                            size={14}
+                            strokeWidth={2.2}
+                            className={`mt-[2px] shrink-0 ${iconClassName}`}
+                        />
+
+                        <p>
+                            <span className="font-extrabold text-gray-800">{key}: </span>
+                            {getSummaryValue(key)}
+                        </p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function RoomListPanel({
     homeMode,
     title,
@@ -48,6 +120,7 @@ export default function RoomListPanel({
     loadingRoomId,
     roomSummaries,
     getRoomSummary,
+    getSummaryKey,
     favoriteRooms,
     addFavoriteRoom,
     removeFavoriteRoom,
@@ -69,6 +142,10 @@ export default function RoomListPanel({
 
     const [openSummaryIds, setOpenSummaryIds] = useState<Record<string, boolean>>({});
     const [focusedRoomId, setFocusedRoomId] = useState<string | null>(null);
+    const [activeDetailTabs, setActiveDetailTabs] = useState<
+        Record<string, "market" | "ai">
+    >({});
+
     return (
         <div className="flex h-full flex-col bg-white">
             <div className="flex h-full flex-col bg-white">
@@ -122,6 +199,9 @@ export default function RoomListPanel({
                             {visibleRooms.map((room) => {
                                 const roomId = String((room as any).id ?? (room as any).room_id);
 
+                                const activeDetailTab = activeDetailTabs[roomId] ?? "market";
+                                const isFocused = focusedRoomId === roomId;
+
                                 const isFavoriteCompareMode = homeMode === "favoriteCompare";
                                 const isCompareSelected = selectedCompareRoomIds.includes(roomId);
 
@@ -144,10 +224,20 @@ export default function RoomListPanel({
                                     (room as any).room_size ??
                                     null;
 
-                                const summary = roomSummaries[roomId];
-                                const isLoading = loadingRoomId === roomId;
+                                const summaryKey = getSummaryKey(room);
+                                const summary = roomSummaries[summaryKey];
+                                const isLoading = loadingRoomId === summaryKey;
 
-                                const isSummaryOpen = openSummaryIds[roomId] ?? false;
+                                const requestRoomSummary = () => {
+                                    setOpenSummaryIds((prev) => ({
+                                        ...prev,
+                                        [summaryKey]: true,
+                                    }));
+
+                                    if (!summary && !isLoading) {
+                                        getRoomSummary(room);
+                                    }
+                                };
 
                                 const isFavorite = favoriteRooms.some((favoriteRoom) => {
                                     const favoriteRoomId = String(
@@ -161,9 +251,20 @@ export default function RoomListPanel({
                                 return (
                                     <article
                                         key={roomId}
-                                        onClick={() =>
-                                            setFocusedRoomId((prev) => (prev === roomId ? null : roomId))
-                                        }
+                                        onClick={() => {
+                                            setFocusedRoomId((prev) => {
+                                                const nextFocusedRoomId = prev === roomId ? null : roomId;
+
+                                                if (nextFocusedRoomId) {
+                                                    setActiveDetailTabs((prevTabs) => ({
+                                                        ...prevTabs,
+                                                        [roomId]: "market",
+                                                    }));
+                                                }
+
+                                                return nextFocusedRoomId;
+                                            });
+                                        }}
                                         className={`cursor-pointer rounded-2xl border bg-white p-4 shadow-sm transition ${focusedRoomId === roomId
                                             ? "border-blue-400 ring-2 ring-blue-100"
                                             : "border-gray-200 hover:border-gray-300 hover:shadow-md"
@@ -229,111 +330,208 @@ export default function RoomListPanel({
                                             </span>
                                         </div>
 
-                                        {focusedRoomId === roomId && (
-                                            <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <p className="text-base font-extrabold text-gray-950">
-                                                            시세 비교
-                                                        </p>
-                                                        <p className="mt-1 text-xs font-semibold text-gray-400">
-                                                            최근 1년 실거래가 기준
-                                                        </p>
-                                                    </div>
+                                        {isFocused && (
+                                            <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                                                {/* 탭 버튼 */}
+                                                <div className="grid grid-cols-2 border-b border-gray-200 text-sm font-bold">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveDetailTabs((prev) => ({
+                                                                ...prev,
+                                                                [roomId]: "market",
+                                                            }));
+                                                        }}
+                                                        className={`py-3 transition ${activeDetailTab === "market"
+                                                            ? "border-b-2 border-blue-600 text-blue-600"
+                                                            : "text-gray-500 hover:bg-gray-50"
+                                                            }`}
+                                                    >
+                                                        시세 비교
+                                                    </button>
 
-                                                    <span className="text-xs font-bold text-gray-400">
-                                                        참고
-                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+
+                                                            setActiveDetailTabs((prev) => ({
+                                                                ...prev,
+                                                                [roomId]: "ai",
+                                                            }));
+
+                                                            requestRoomSummary();
+                                                        }}
+                                                        className={`py-3 transition ${activeDetailTab === "ai"
+                                                            ? "border-b-2 border-blue-600 text-blue-600"
+                                                            : "text-gray-500 hover:bg-gray-50"
+                                                            }`}
+                                                    >
+                                                        AI 요약
+                                                    </button>
                                                 </div>
 
-                                                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 text-center">
-                                                    <div>
-                                                        <p className="text-xs font-bold text-gray-400">현재 매물</p>
-                                                        <p className="mt-2 text-xs font-extrabold text-gray-950">
-                                                            보증금 {deposit} / 월세 {rent}
-                                                        </p>
+                                                {/* 시세 비교 탭 */}
+                                                {activeDetailTab === "market" && (
+                                                    <div className="p-3.5">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-sm font-extrabold text-gray-950">
+                                                                    시세 비교
+                                                                </p>
+
+                                                                <span className="text-xs font-semibold text-gray-400">
+                                                                    최근 1년 실거래가 기준
+                                                                </span>
+                                                            </div>
+
+                                                            <Info size={14} strokeWidth={2.2} className="shrink-0 text-gray-400" />
+                                                        </div>
+
+                                                        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-3 text-center">
+                                                            <div>
+                                                                <p className="text-[11px] font-bold text-gray-400">현재 매물</p>
+                                                                <p className="mt-1 text-xs font-extrabold text-gray-950">
+                                                                    보증금 {deposit} / 월세 {rent}
+                                                                </p>
+                                                            </div>
+
+                                                            <span className="text-xs font-extrabold text-gray-400">VS</span>
+
+                                                            <div>
+                                                                <p className="text-[11px] font-bold text-gray-400">평균 시세</p>
+                                                                <p className="mt-1 text-xs font-extrabold text-gray-950">
+                                                                    보증금 1200 / 월세 59
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-2 grid grid-cols-3 gap-2">
+                                                            <div className="rounded-xl border border-gray-100 bg-white px-2 py-2 text-center">
+                                                                <p className="text-[11px] font-bold text-gray-400">현재 월세</p>
+                                                                <p className="mt-1 text-base font-extrabold text-blue-600">
+                                                                    {rent}만 원
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="rounded-xl border border-gray-100 bg-white px-2 py-2 text-center">
+                                                                <p className="text-[11px] font-bold text-gray-400">평균 월세</p>
+                                                                <p className="mt-1 text-base font-extrabold text-gray-950">
+                                                                    59만 원
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="rounded-xl border border-gray-100 bg-white px-2 py-2 text-center">
+                                                                <p className="text-[11px] font-bold text-gray-400">차이</p>
+                                                                <p className="mt-1 text-base font-extrabold text-emerald-600">
+                                                                    -7만 원
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-3">
+                                                            <p className="text-[11px] font-bold text-gray-500">
+                                                                최근 12개월 월세 추이
+                                                            </p>
+
+                                                            <div className="mt-2 rounded-xl bg-gray-50 px-3 py-2">
+                                                                <svg
+                                                                    viewBox="0 0 300 90"
+                                                                    className="h-24 w-full"
+                                                                    role="img"
+                                                                    aria-label="최근 12개월 월세 추이 그래프"
+                                                                >
+                                                                    <line x1="32" y1="12" x2="32" y2="72" stroke="#E5E7EB" strokeWidth="1" />
+                                                                    <line x1="32" y1="72" x2="292" y2="72" stroke="#E5E7EB" strokeWidth="1" />
+
+                                                                    <text x="0" y="16" fontSize="9" fill="#9CA3AF">70만 원</text>
+                                                                    <text x="0" y="45" fontSize="9" fill="#9CA3AF">55만 원</text>
+                                                                    <text x="0" y="74" fontSize="9" fill="#9CA3AF">40만 원</text>
+
+                                                                    <polyline
+                                                                        points="40,58 70,50 100,49 130,47 160,44 190,40 220,36 250,34 280,28"
+                                                                        fill="none"
+                                                                        stroke="#60A5FA"
+                                                                        strokeWidth="2.5"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                    />
+
+                                                                    {[
+                                                                        [40, 58],
+                                                                        [70, 50],
+                                                                        [100, 49],
+                                                                        [130, 47],
+                                                                        [160, 44],
+                                                                        [190, 40],
+                                                                        [220, 36],
+                                                                        [250, 34],
+                                                                        [280, 28],
+                                                                    ].map(([cx, cy], index) => (
+                                                                        <circle
+                                                                            key={index}
+                                                                            cx={cx}
+                                                                            cy={cy}
+                                                                            r={3}
+                                                                            fill={index === 8 ? "#2563EB" : "#93C5FD"}
+                                                                        />
+                                                                    ))}
+
+                                                                    <text x="34" y="88" fontSize="9" fill="#9CA3AF">23.06</text>
+                                                                    <text x="95" y="88" fontSize="9" fill="#9CA3AF">23.08</text>
+                                                                    <text x="158" y="88" fontSize="9" fill="#9CA3AF">23.10</text>
+                                                                    <text x="220" y="88" fontSize="9" fill="#9CA3AF">24.02</text>
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-gray-400">
+                                                            <Info size={13} strokeWidth={2.1} className="mt-[1px] shrink-0 text-gray-400" />
+                                                            <p>
+                                                                실거래가는 유사 매물 기준 참고값이며 층수·옵션·관리비에 따라 차이가 있을 수 있어요.
+                                                            </p>
+                                                        </div>
                                                     </div>
+                                                )}
 
-                                                    <span className="text-xs font-extrabold text-gray-400">VS</span>
+                                                {/* AI 요약 탭 */}
+                                                {activeDetailTab === "ai" && (
+                                                    <div className="p-3.5">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-1.5 text-blue-600">
+                                                                    <Sparkles size={14} strokeWidth={2.4} />
+                                                                    <p className="text-sm font-extrabold">
+                                                                        AI 요약
+                                                                    </p>
+                                                                </div>
 
-                                                    <div>
-                                                        <p className="text-xs font-bold text-gray-400">평균 시세</p>
-                                                        <p className="mt-2 text-xs font-extrabold text-gray-950">
-                                                            보증금 1200 / 월세 59
-                                                        </p>
+                                                                <span className="text-xs font-semibold text-gray-400">
+                                                                    출퇴근·가격·생활 편의 기준
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="mt-3 max-h-[180px] overflow-y-auto whitespace-pre-line rounded-xl bg-gray-50 px-4 py-3 text-xs leading-6 text-gray-700"
+                                                        >
+                                                            {isLoading ? (
+                                                                <div className="flex min-h-[120px] items-center justify-center text-center text-gray-400">
+                                                                    AI 요약을 생성하는 중입니다...
+                                                                </div>
+                                                            ) : summary ? (
+                                                                <AiSummaryView summary={summary} />
+                                                            ) : (
+                                                                <div className="flex min-h-[120px] items-center justify-center text-center text-gray-400">
+                                                                    AI 요약을 불러오는 중입니다.
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-
-                                                <div className="mt-3 grid grid-cols-3 gap-2">
-                                                    <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3 text-center">
-                                                        <p className="text-xs font-bold text-gray-400">현재 월세</p>
-                                                        <p className="mt-1 text-base font-extrabold text-blue-600">
-                                                            {rent}만 원
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3 text-center">
-                                                        <p className="text-xs font-bold text-gray-400">평균 월세</p>
-                                                        <p className="mt-1 text-base font-extrabold text-gray-950">
-                                                            59만 원
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3 text-center">
-                                                        <p className="text-xs font-bold text-gray-400">차이</p>
-                                                        <p className="mt-1 text-base font-extrabold text-emerald-600">
-                                                            -7만 원
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-gray-400">
-                                                    <Info size={14} strokeWidth={2.2} className="mt-[1px] shrink-0" />
-                                                    <p>
-                                                        실거래가는 유사 매물 기준 참고값이며 층수·옵션·관리비에 따라 차이가 있을 수 있어요.
-                                                    </p>
-                                                </div>
+                                                )}
                                             </div>
-                                        )}
-
-                                        {focusedRoomId === roomId && summary && isSummaryOpen && (
-                                            <div className="mt-4 whitespace-pre-line rounded-xl bg-gray-50 px-4 py-3 text-xs leading-6 text-gray-700">
-                                                {summary}
-                                            </div>
-                                        )}
-
-                                        {focusedRoomId === roomId && (
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-
-                                                    if (summary) {
-                                                        setOpenSummaryIds((prev) => ({
-                                                            ...prev,
-                                                            [roomId]: !isSummaryOpen,
-                                                        }));
-                                                        return;
-                                                    }
-
-                                                    setOpenSummaryIds((prev) => ({
-                                                        ...prev,
-                                                        [roomId]: true,
-                                                    }));
-
-                                                    getRoomSummary(room);
-                                                }}
-                                                disabled={isLoading}
-                                                className="mt-3 w-full rounded-xl bg-gray-950 px-4 py-2 text-xs font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
-                                            >
-                                                {isLoading
-                                                    ? "요약 중..."
-                                                    : summary
-                                                        ? isSummaryOpen
-                                                            ? "닫기"
-                                                            : "다시 보기"
-                                                        : "매물 장단점 요약"}
-                                            </button>
                                         )}
                                     </article>
                                 );
