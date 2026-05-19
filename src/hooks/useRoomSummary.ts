@@ -6,7 +6,7 @@ export function useRoomSummary(confirmedCompany: Place | null) {
     const [loadingSummaryKey, setLoadingSummaryKey] = useState<string | null>(null);
 
     const getRoomId = (room: Room) => {
-        return String((room as any).id ?? (room as any).room_id);
+        return String(room.id ?? room.room_id);
     };
 
     const getCompanyKey = () => {

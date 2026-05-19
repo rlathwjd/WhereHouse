@@ -4,7 +4,7 @@ import type { Room } from "@/types/map";
 const FAVORITE_ROOMS_STORAGE_KEY = "wherehouse_favorite_rooms";
 
 const getRoomId = (room: Room) => {
-    return String((room as any).id ?? (room as any).room_id);
+    return String(room.id ?? room.room_id);
 };
 
 export function useFavoriteRooms() {

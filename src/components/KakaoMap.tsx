@@ -3,7 +3,15 @@
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 
-import type { Place, Room, FilterMenu, HomeMode } from "@/types/map";
+import type {
+  KakaoInfoWindow,
+  KakaoMap as KakaoMapInstance,
+  KakaoMapEntity,
+  Place,
+  Room,
+  FilterMenu,
+  HomeMode,
+} from "@/types/map";
 import RoomListPanel from "@/components/RoomListPanel";
 import { useKakaoRoomCluster } from "@/hooks/useKakaoRoomCluster";
 import { useRoomSummary } from "@/hooks/useRoomSummary";
@@ -11,20 +19,13 @@ import { useRoomsCache } from "@/hooks/useRoomsCache";
 import { useFavoriteRooms } from "@/hooks/useFavoriteRooms";
 import LocationSearchPanel from "@/components/LocationSearchPanel";
 
-declare global {
-  interface Window {
-    kakao: any;
-    selectRoomInfo?: (roomId: string) => void;
-  }
-}
-
 export default function KakaoMap() {
   /**
    * 지도와 외부 DOM 참조
    */
-  const mapRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const infoWindowRef = useRef<any>(null);
+  const mapRef = useRef<KakaoMapInstance | null>(null);
+  const markerRef = useRef<KakaoMapEntity | null>(null);
+  const infoWindowRef = useRef<KakaoInfoWindow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const previousCompanyRef = useRef<Place | null>(null);
 
@@ -74,15 +75,19 @@ export default function KakaoMap() {
   /**
    * 조건 필터 입력값
    */
-  const [deposit, setDeposit] = useState(7000);
-  const [rent, setRent] = useState(70);
+  const [monthlyDeposit, setMonthlyDeposit] = useState(7000);
+  const [monthlyRent, setMonthlyRent] = useState(70);
+  const [leaseDeposit, setLeaseDeposit] = useState(7000);
+  const [salePrice, setSalePrice] = useState(500000);
   const [roomSize, setRoomSize] = useState(10);
 
   /**
    * 조건 필터 확정값
    */
-  const [confirmedDeposit, setConfirmedDeposit] = useState(7000);
-  const [confirmedRent, setConfirmedRent] = useState(70);
+  const [confirmedMonthlyDeposit, setConfirmedMonthlyDeposit] = useState(7000);
+  const [confirmedMonthlyRent, setConfirmedMonthlyRent] = useState(70);
+  const [confirmedLeaseDeposit, setConfirmedLeaseDeposit] = useState(7000);
+  const [confirmedSalePrice, setConfirmedSalePrice] = useState(500000);
   const [confirmedRoomSize, setConfirmedRoomSize] = useState(10);
 
   /**
@@ -161,20 +166,22 @@ export default function KakaoMap() {
         ? `선택 지역 ${selectedRegions.length}곳`
         : "전체 매물";
 
-  const mapHeight = isHomeSearchPanelOpen ? "h-[418px]" : "h-[620px]";
-
   const [isSearchInMapArea, setIsSearchInMapArea] = useState(true);
 
   /**
    * 지도 초기화
    */
   const initializeMap = () => {
+    if (!window.kakao?.maps) return;
+
     window.kakao.maps.load(() => {
       const container = document.getElementById("map");
       if (!container) return;
+      const kakaoMaps = window.kakao?.maps;
+      if (!kakaoMaps) return;
 
-      const map = new window.kakao.maps.Map(container, {
-        center: new window.kakao.maps.LatLng(37.5665, 126.978),
+      const map = new kakaoMaps.Map(container, {
+        center: new kakaoMaps.LatLng(37.5665, 126.978),
         level: 8,
       });
 
@@ -182,7 +189,7 @@ export default function KakaoMap() {
 
       setTimeout(() => {
         map.relayout();
-        map.setCenter(new window.kakao.maps.LatLng(37.5665, 126.978));
+        map.setCenter(new kakaoMaps.LatLng(37.5665, 126.978));
       }, 300);
     });
   };
@@ -199,12 +206,15 @@ export default function KakaoMap() {
     setIsSearching(true);
     setSearchFailed(false);
 
-    const ps = new window.kakao.maps.services.Places();
+    if (!window.kakao?.maps) return;
+
+    const kakaoMaps = window.kakao.maps;
+    const ps = new kakaoMaps.services.Places();
 
     ps.keywordSearch(keyword, (data: Place[], status: string) => {
       setIsSearching(false);
 
-      if (status !== window.kakao.maps.services.Status.OK) {
+      if (status !== kakaoMaps.services.Status.OK) {
         setPlaces([]);
         setSearchFailed(true);
         return;
@@ -222,21 +232,22 @@ export default function KakaoMap() {
     setSelectedCompany(place);
     setConfirmedCompany(place);
 
-    if (!mapRef.current) return;
+    if (!mapRef.current || !window.kakao?.maps) return;
 
     setHasSearched(true);
 
-    const position = new window.kakao.maps.LatLng(place.y, place.x);
+    const kakaoMaps = window.kakao.maps;
+    const position = new kakaoMaps.LatLng(place.y, place.x);
 
     if (markerRef.current) markerRef.current.setMap(null);
     if (infoWindowRef.current) infoWindowRef.current.close();
 
-    const marker = new window.kakao.maps.Marker({
+    const marker = new kakaoMaps.Marker({
       position,
       map: mapRef.current,
     });
 
-    const infoWindow = new window.kakao.maps.InfoWindow({
+    const infoWindow = new kakaoMaps.InfoWindow({
       content: `
         <div style="
           padding: 10px 14px;
@@ -275,66 +286,6 @@ export default function KakaoMap() {
   };
 
   /**
-   * 회사 검색 결과 지도 미리보기
-   */
-  const previewCompanyOnMap = (place: Place) => {
-    if (!mapRef.current) return;
-
-    const position = new window.kakao.maps.LatLng(place.y, place.x);
-
-    mapRef.current.setCenter(position);
-    mapRef.current.setLevel(4);
-
-    if (markerRef.current) markerRef.current.setMap(null);
-    if (infoWindowRef.current) infoWindowRef.current.close();
-
-    const marker = new window.kakao.maps.Marker({
-      position,
-      map: mapRef.current,
-    });
-
-    const infoWindow = new window.kakao.maps.InfoWindow({
-      content: `
-        <div style="
-          padding: 10px 14px;
-          font-size: 13px;
-          white-space: nowrap;
-          background: white;
-        ">
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
-          ">
-            <span style="font-weight: 700;">${place.place_name}</span>
-            <span style="color: #9ca3af; font-size: 12px;">
-              ${place.road_address_name || place.address_name}
-            </span>
-          </div>
-          <div style="color: #666;">
-            마커를 클릭하면 회사 위치로 확정됩니다.
-          </div>
-        </div>
-      `,
-    });
-
-    infoWindow.open(mapRef.current, marker);
-
-    window.kakao.maps.event.addListener(marker, "click", () => {
-      confirmCompany(place);
-    });
-
-    markerRef.current = marker;
-    infoWindowRef.current = infoWindow;
-
-    setKeyword(place.place_name);
-    setPlaces([]);
-    setHasSearched(false);
-    setSearchFailed(false);
-  };
-
-  /**
    * 조건 필터 메뉴
    */
   const toggleFilter = (menu: FilterMenu) => {
@@ -351,12 +302,16 @@ export default function KakaoMap() {
     setSelectedApprovalDate(null);
     setSelectedRooms([]);
 
-    setDeposit(7000);
-    setRent(70);
+    setMonthlyDeposit(7000);
+    setMonthlyRent(70);
+    setLeaseDeposit(7000);
+    setSalePrice(500000);
     setRoomSize(10);
 
-    setConfirmedDeposit(7000);
-    setConfirmedRent(70);
+    setConfirmedMonthlyDeposit(7000);
+    setConfirmedMonthlyRent(70);
+    setConfirmedLeaseDeposit(7000);
+    setConfirmedSalePrice(500000);
     setConfirmedRoomSize(10);
 
     setIsBudgetTouched(false);
@@ -391,8 +346,10 @@ export default function KakaoMap() {
           regions: selectedRegions,
           roomTypes: selectedRoomTypes,
           tradeTypes: selectedTradeTypes,
-          maxDeposit: isBudgetTouched ? confirmedDeposit : null,
-          maxRent: isBudgetTouched ? confirmedRent : null,
+          maxMonthlyDeposit: isBudgetTouched ? confirmedMonthlyDeposit : null,
+          maxMonthlyRent: isBudgetTouched ? confirmedMonthlyRent : null,
+          maxLeaseDeposit: isBudgetTouched ? confirmedLeaseDeposit : null,
+          maxSalePrice: isBudgetTouched ? confirmedSalePrice : null,
           minRoomSize: isRoomSizeTouched ? confirmedRoomSize : null,
           rooms: selectedRooms,
           approvalDate: selectedApprovalDate,
@@ -406,6 +363,8 @@ export default function KakaoMap() {
       isCancelled = true;
       clearTimeout(timer);
     };
+    // showRoomClusters is intentionally omitted to avoid recreating clusters on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     homeMode,
     selectedRegions,
@@ -413,8 +372,10 @@ export default function KakaoMap() {
     selectedTradeTypes,
     selectedApprovalDate,
     selectedRooms,
-    confirmedDeposit,
-    confirmedRent,
+    confirmedMonthlyDeposit,
+    confirmedMonthlyRent,
+    confirmedLeaseDeposit,
+    confirmedSalePrice,
     confirmedRoomSize,
     isBudgetTouched,
     isRoomSizeTouched,
@@ -538,7 +499,6 @@ export default function KakaoMap() {
         isSearching={isSearching}
         searchFailed={searchFailed}
         searchPlace={searchPlace}
-        previewCompanyOnMap={previewCompanyOnMap}
         showLocationOption={showLocationOption}
         setShowLocationOption={setShowLocationOption}
         showHomeOption={showHomeOption}
@@ -567,14 +527,22 @@ export default function KakaoMap() {
         setSelectedApprovalDate={setSelectedApprovalDate}
         selectedRooms={selectedRooms}
         setSelectedRooms={setSelectedRooms}
-        deposit={deposit}
-        setDeposit={setDeposit}
-        confirmedDeposit={confirmedDeposit}
-        setConfirmedDeposit={setConfirmedDeposit}
-        rent={rent}
-        setRent={setRent}
-        confirmedRent={confirmedRent}
-        setConfirmedRent={setConfirmedRent}
+        monthlyDeposit={monthlyDeposit}
+        setMonthlyDeposit={setMonthlyDeposit}
+        confirmedMonthlyDeposit={confirmedMonthlyDeposit}
+        setConfirmedMonthlyDeposit={setConfirmedMonthlyDeposit}
+        monthlyRent={monthlyRent}
+        setMonthlyRent={setMonthlyRent}
+        confirmedMonthlyRent={confirmedMonthlyRent}
+        setConfirmedMonthlyRent={setConfirmedMonthlyRent}
+        leaseDeposit={leaseDeposit}
+        setLeaseDeposit={setLeaseDeposit}
+        confirmedLeaseDeposit={confirmedLeaseDeposit}
+        setConfirmedLeaseDeposit={setConfirmedLeaseDeposit}
+        salePrice={salePrice}
+        setSalePrice={setSalePrice}
+        confirmedSalePrice={confirmedSalePrice}
+        setConfirmedSalePrice={setConfirmedSalePrice}
         roomSize={roomSize}
         setRoomSize={setRoomSize}
         confirmedRoomSize={confirmedRoomSize}
@@ -589,7 +557,7 @@ export default function KakaoMap() {
 
       {/* 지도 */}
       <div
-        className={`relative mt-6 ${isHomeSearchPanelOpen ? "h-[418px]" : "h-[620px]"
+        className={`relative mt-5 ${isHomeSearchPanelOpen ? "h-[560px]" : "h-[620px]"
           } overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm`}
       >
         <div id="map" className="h-full w-full bg-gray-200" />

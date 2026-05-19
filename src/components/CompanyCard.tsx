@@ -4,7 +4,7 @@ import type {
     RefObject,
     SetStateAction,
 } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 
 import type { FilterMenu, HomeMode, Place } from "@/types/map";
 
@@ -40,18 +40,13 @@ export default function CompanyCard({
     selectedCompany,
     showCompanySearch,
     setShowCompanySearch,
-    setShowHomeFilters,
     setShowLocationOption,
-    setShowHomeOption,
-    setOpenFilterMenu,
-    setHomeMode,
     setPlaces,
     setKeyword,
     setHasSearched,
     setIsEditingCompany,
     inputRef,
     clearRoomClusters,
-    setShowRoomList,
     confirmCompany,
     previousCompanyRef,
 }: CompanyCardProps) {
@@ -76,13 +71,6 @@ export default function CompanyCard({
 
         // 회사 + 집 카드 영역은 유지
         setShowLocationOption(true);
-
-        // 집+ 선택 박스와 집 탐색 모드는 닫기
-        setShowHomeOption(false);
-        setHomeMode(null);
-        setShowHomeFilters(false);
-        setOpenFilterMenu(null);
-        setShowRoomList(false);
 
         // 검색 상태 초기화
         resetCompanySearchState();
@@ -112,49 +100,63 @@ export default function CompanyCard({
     };
 
     return (
-        <div className="rounded-2xl bg-[#eef7fe] p-5 text-[#374151] shadow-sm transition-transform duration-300">
+        <div className="flex h-full items-center rounded-2xl border border-[#D7E6FF] bg-[#EEF4FF] p-5 text-[#374151] shadow-sm transition-transform duration-300">
             {selectedCompany ? (
-                <div className="flex cursor-pointer items-start justify-between">
-                    <div onClick={toggleCompanySearch} className="cursor-pointer">
-                        <p className="text-sm text-[#6B7280]">회사</p>
+                <div className="flex w-full items-center justify-between gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-4">
+                        <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border border-[#2563EB] bg-white">
+                            <Building2 size={32} className="text-[#2563EB]" strokeWidth={2.4} />
+                        </span>
 
-                        <p className="mt-2 text-xl font-bold text-[#1F2937]">
-                            {selectedCompany.place_name}
-                        </p>
+                        <span className="min-w-0">
+                            <span className="block truncate text-xl font-bold text-[#111827]">
+                                {selectedCompany.place_name}
+                            </span>
 
-                        <p className="mt-1 text-sm text-[#6B7280]">
-                            {selectedCompany.road_address_name || selectedCompany.address_name}
-                        </p>
-                    </div>
-
-                    <div className="ml-4">
-                        <button
-                            type="button"
-                            onClick={toggleCompanySearch}
-                            className="rounded-xl bg-[#8CB9E8] px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#74A8DD]"
-                        >
-                            {showCompanySearch ? "취소" : "수정"}
-                        </button>
-                    </div>
-                </div>
-            ) : (
-                <button
-                    type="button"
-                    onClick={toggleCompanySearch}
-                    className="flex min-h-[80px] w-full items-center justify-center gap-4 active:scale-[0.98]"
-                >
-                    <div className="flex items-center gap-3">
-                        <Building2 size={28} className="text-[#334155]" />
-
-                        <span className="text-2xl font-bold text-[#1F2937]">
-                            회사
+                            <span className="mt-2 block truncate text-sm font-medium text-[#6B7280]">
+                                {selectedCompany.road_address_name || selectedCompany.address_name}
+                            </span>
                         </span>
                     </div>
 
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[#94A3B8] bg-white text-3xl text-[#475569] transition-colors duration-200 hover:bg-[#F1F5F9]">
-                        +
-                    </span>
-                </button>
+                    {!showCompanySearch && (
+                        <button
+                            type="button"
+                            onClick={toggleCompanySearch}
+                            className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-[#2563EB] bg-white px-5 text-sm font-bold text-[#2563EB] transition hover:bg-[#EFF6FF]"
+                        >
+                            수정
+                        </button>
+                    )}
+                </div>
+            ) : (
+                <div className="flex w-full items-center justify-between gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-4">
+                        <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border border-[#2563EB] bg-white">
+                            <Building2 size={32} className="text-[#2563EB]" strokeWidth={2.4} />
+                        </span>
+
+                        <span className="min-w-0">
+                            <span className="block text-xl font-bold text-[#111827]">
+                                회사
+                            </span>
+
+                            <span className="mt-2 block text-xs font-medium leading-6 text-[#4B5563]">
+                                회사 위치를 추가하면 출퇴근 기준으로 매물을 비교할 수 있어요.
+                            </span>
+                        </span>
+                    </div>
+
+                    {!showCompanySearch && (
+                        <button
+                            type="button"
+                            onClick={toggleCompanySearch}
+                            className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-[#2563EB] bg-white px-3 text-sm font-bold text-[#2563EB] transition hover:bg-[#EFF6FF]"
+                        >
+                            <Plus size={18} strokeWidth={2.6} />
+                        </button>
+                    )}
+                </div>
             )}
         </div>
     );

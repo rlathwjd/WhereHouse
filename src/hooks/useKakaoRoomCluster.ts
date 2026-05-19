@@ -1,20 +1,22 @@
 import { useRef } from "react";
-import type { Room } from "@/types/map";
+import type { KakaoClusterer, KakaoMap, KakaoMapEntity, Room } from "@/types/map";
 
 type ShowRoomClustersParams = {
     sourceRooms?: Room[];
     regions: string[];
     roomTypes: string[];
     tradeTypes: string[];
-    maxDeposit: number | null;
-    maxRent: number | null;
+    maxMonthlyDeposit: number | null;
+    maxMonthlyRent: number | null;
+    maxLeaseDeposit: number | null;
+    maxSalePrice: number | null;
     minRoomSize: number | null;
     rooms: string[];
     approvalDate: string | null;
 };
 
 type UseKakaoRoomClusterProps = {
-    mapRef: React.RefObject<any>;
+    mapRef: React.RefObject<KakaoMap | null>;
 
     // 왼쪽 기본 매물 리스트
     // 조건 없음: 전체 매물
@@ -48,9 +50,9 @@ export function useKakaoRoomCluster({
     setSelectedClusterName,
     setShowRoomList,
 }: UseKakaoRoomClusterProps) {
-    const markersRef = useRef<any[]>([]);
-    const overlaysRef = useRef<any[]>([]);
-    const clustererRef = useRef<any>(null);
+    const markersRef = useRef<KakaoMapEntity[]>([]);
+    const overlaysRef = useRef<KakaoMapEntity[]>([]);
+    const clustererRef = useRef<KakaoClusterer | null>(null);
     const selectedOverlaysRef = useRef<Map<string, HTMLElement>>(new Map());
     const selectedGroupsRef = useRef<Map<string, Room[]>>(new Map());
 
@@ -116,29 +118,29 @@ export function useKakaoRoomCluster({
     };
 
     const getRoomId = (room: Room) => {
-        return String((room as any).id ?? (room as any).room_id);
+        return String(room.id ?? room.room_id);
     };
 
     const getRoomLat = (room: Room) => {
         return Number(
-            (room as any).lat ??
-            (room as any).latitude ??
-            (room as any).y ??
-            (room as any).room_lat
+            room.lat ??
+            room.latitude ??
+            room.y ??
+            room.room_lat
         );
     };
 
     const getRoomLng = (room: Room) => {
         return Number(
-            (room as any).lng ??
-            (room as any).longitude ??
-            (room as any).x ??
-            (room as any).room_lng
+            room.lng ??
+            room.longitude ??
+            room.x ??
+            room.room_lng
         );
     };
 
     const getRoomRegionNames = (room: Room) => {
-        const address = String((room as any).location ?? "").trim();
+        const address = String(room.location ?? "").trim();
 
         if (!address) {
             return {
@@ -292,7 +294,10 @@ export function useKakaoRoomCluster({
     };
 
     const createRegionOverlay = (group: RoomGroup) => {
-        const position = new window.kakao.maps.LatLng(group.lat, group.lng);
+        const kakaoMaps = window.kakao?.maps;
+        if (!kakaoMaps || !mapRef.current) return;
+
+        const position = new kakaoMaps.LatLng(group.lat, group.lng);
 
         const content = document.createElement("button");
         content.type = "button";
@@ -382,7 +387,7 @@ export function useKakaoRoomCluster({
             setShowRoomList(true);
         });
 
-        const overlay = new window.kakao.maps.CustomOverlay({
+        const overlay = new kakaoMaps.CustomOverlay({
             position,
             content,
             yAnchor: 1,
@@ -394,9 +399,10 @@ export function useKakaoRoomCluster({
     };
 
     const fitMapToRooms = (rooms: Room[]) => {
-        if (!mapRef.current || rooms.length === 0) return;
+        const kakaoMaps = window.kakao?.maps;
+        if (!mapRef.current || !kakaoMaps || rooms.length === 0) return;
 
-        const bounds = new window.kakao.maps.LatLngBounds();
+        const bounds = new kakaoMaps.LatLngBounds();
 
         rooms.forEach((room) => {
             const lat = getRoomLat(room);
@@ -404,7 +410,7 @@ export function useKakaoRoomCluster({
 
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-            bounds.extend(new window.kakao.maps.LatLng(lat, lng));
+            bounds.extend(new kakaoMaps.LatLng(lat, lng));
         });
 
         mapRef.current.setBounds(bounds);
@@ -416,8 +422,10 @@ export function useKakaoRoomCluster({
             params.roomTypes.length > 0 ||
             params.tradeTypes.length > 0 ||
             params.rooms.length > 0 ||
-            params.maxDeposit !== null ||
-            params.maxRent !== null ||
+            params.maxMonthlyDeposit !== null ||
+            params.maxMonthlyRent !== null ||
+            params.maxLeaseDeposit !== null ||
+            params.maxSalePrice !== null ||
             params.minRoomSize !== null ||
             Boolean(params.approvalDate)
         );
@@ -447,26 +455,24 @@ export function useKakaoRoomCluster({
 
     const filterRooms = (rooms: Room[], params: ShowRoomClustersParams) => {
         return rooms.filter((room) => {
-            const roomAny = room as any;
-
-            const location = String(roomAny.location ?? "");
-            const roomType = String(roomAny.room_type ?? roomAny.roomType ?? "");
-            const tradeType = String(roomAny.trade_type ?? roomAny.tradeType ?? "");
-            const roomCount = String(roomAny.rooms ?? roomAny.room_count ?? roomAny.roomCount ?? "");
+            const location = String(room.location ?? "");
+            const roomType = String(room.room_type ?? room.roomType ?? "");
+            const tradeType = String(room.trade_type ?? room.tradeType ?? "");
+            const roomCount = String(room.rooms ?? room.room_count ?? room.roomCount ?? "");
             const approvalDate = String(
-                roomAny.approval_date ??
-                roomAny.approvalDate ??
-                roomAny.approved_at ??
+                room.approval_date ??
+                room.approvalDate ??
+                room.approved_at ??
                 ""
             );
 
-            const deposit = getNumberValue(roomAny.deposit, roomAny.deposit_price);
-            const rent = getNumberValue(roomAny.rent, roomAny.monthly_rent);
+            const deposit = getNumberValue(room.deposit, room.deposit_price);
+            const rent = getNumberValue(room.rent, room.monthly_rent);
             const roomSize = getNumberValue(
-                roomAny.room_size,
-                roomAny.roomSize,
-                roomAny.area,
-                roomAny.exclusive_area
+                room.room_size,
+                room.roomSize,
+                room.area,
+                room.exclusive_area
             );
 
             if (!includesAny(location, params.regions)) return false;
@@ -474,18 +480,43 @@ export function useKakaoRoomCluster({
             if (!includesAny(tradeType, params.tradeTypes)) return false;
             if (!includesAny(roomCount, params.rooms)) return false;
 
+            const isMonthlyTrade = tradeType.includes("월세");
+            const isLeaseTrade = tradeType.includes("전세");
+
             if (
-                params.maxDeposit !== null &&
+                isMonthlyTrade &&
+                params.maxMonthlyDeposit !== null &&
                 deposit !== null &&
-                deposit > params.maxDeposit
+                deposit > params.maxMonthlyDeposit
             ) {
                 return false;
             }
 
             if (
-                params.maxRent !== null &&
+                isMonthlyTrade &&
+                params.maxMonthlyRent !== null &&
                 rent !== null &&
-                rent > params.maxRent
+                rent > params.maxMonthlyRent
+            ) {
+                return false;
+            }
+
+            if (
+                isLeaseTrade &&
+                params.maxLeaseDeposit !== null &&
+                deposit !== null &&
+                deposit > params.maxLeaseDeposit
+            ) {
+                return false;
+            }
+
+            const isSaleTrade = tradeType.includes("매매");
+
+            if (
+                isSaleTrade &&
+                params.maxSalePrice !== null &&
+                deposit !== null &&
+                deposit > params.maxSalePrice
             ) {
                 return false;
             }

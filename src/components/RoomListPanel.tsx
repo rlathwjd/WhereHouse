@@ -8,6 +8,7 @@ import {
     TriangleAlert,
     ClipboardList,
     Sparkles,
+    ChevronDown,
 } from "lucide-react";
 
 type RoomListPanelProps = {
@@ -140,44 +141,69 @@ export default function RoomListPanel({
         ? "마음에 드는 매물의 하트를 눌러 관심 매물을 추가해보세요."
         : "조건을 조금 넓히거나 다른 지역을 선택해보세요.";
 
-    const [openSummaryIds, setOpenSummaryIds] = useState<Record<string, boolean>>({});
     const [focusedRoomId, setFocusedRoomId] = useState<string | null>(null);
+    const [sortOption, setSortOption] = useState<
+        "latest" | "rentLow" | "depositLow" | "sizeHigh"
+    >("latest");
     const [activeDetailTabs, setActiveDetailTabs] = useState<
         Record<string, "market" | "ai">
     >({});
+
+    const sortedRooms = [...visibleRooms].sort((a, b) => {
+        if (sortOption === "rentLow") return a.rent - b.rent;
+        if (sortOption === "depositLow") return a.deposit - b.deposit;
+        if (sortOption === "sizeHigh") return (b.size ?? 0) - (a.size ?? 0);
+        return 0;
+    });
 
     return (
         <div className="flex h-full flex-col bg-white">
             <div className="flex h-full flex-col bg-white">
                 {/* 상단 헤더 */}
                 <div className="bg-white px-6 pt-6">
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 pb-5">
-                        <div className="flex shrink-0 items-center gap-2">
-                            <h3 className="whitespace-nowrap text-xl font-extrabold tracking-tight text-gray-950">
-                                {title ?? "매물 정보"}
+                    <div className="flex items-center justify-between gap-3 pb-5">
+                        <div className="min-w-0">
+                            <h3 className="truncate text-xl font-extrabold tracking-tight text-gray-950">
+                                {title ?? "전체 매물"} {visibleRooms.length}개
                             </h3>
-
-                            {isFavoriteCompareMode && (
-                                <span className="rounded-full bg-gray-950 px-3 py-1 text-xs font-extrabold text-white">
-                                    {visibleRooms.length}개
-                                </span>
-                            )}
                         </div>
 
-                        {isFavoriteCompareMode ? (
-                            <button
-                                type="button"
-                                onClick={generateCompareReport}
-                                disabled={selectedCompareRoomIds.length < 2 || isGeneratingReport}
-                                className="shrink-0 rounded-full bg-gray-950 px-4 py-1.5 text-xs font-extrabold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
-                            >
-                                {isGeneratingReport ? "분석 중..." : "분석 리포트"}
-                            </button>
-                        ) : (
-                            <span className="shrink-0 rounded-full bg-gray-950 px-4 py-1.5 text-xs font-extrabold text-white">
-                                매물 {visibleRooms.length}개
-                            </span>
-                        )}
+                        <div className="flex shrink-0 items-center gap-2">
+                            {isFavoriteCompareMode && (
+                                <button
+                                    type="button"
+                                    onClick={generateCompareReport}
+                                    disabled={selectedCompareRoomIds.length < 2 || isGeneratingReport}
+                                    className="shrink-0 rounded-lg bg-gray-950 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
+                                >
+                                    {isGeneratingReport ? "분석 중..." : "분석 리포트"}
+                                </button>
+                            )}
+
+                            <label className="sr-only" htmlFor="room-sort">
+                                매물 정렬
+                            </label>
+                            <div className="relative">
+                                <select
+                                    id="room-sort"
+                                    value={sortOption}
+                                    onChange={(event) =>
+                                        setSortOption(event.target.value as typeof sortOption)
+                                    }
+                                    className="h-9 w-[136px] appearance-none rounded-lg border border-gray-200 bg-white px-3 pr-10 text-xs font-bold text-gray-700 outline-none transition hover:border-gray-300 focus:border-gray-950"
+                                >
+                                    <option value="latest">최신 등록순</option>
+                                    <option value="rentLow">월세 낮은순</option>
+                                    <option value="depositLow">보증금 낮은순</option>
+                                    <option value="sizeHigh">면적 넓은순</option>
+                                </select>
+
+                                <ChevronDown
+                                    size={16}
+                                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="h-px w-full bg-gray-200" />
@@ -196,8 +222,8 @@ export default function RoomListPanel({
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {visibleRooms.map((room) => {
-                                const roomId = String((room as any).id ?? (room as any).room_id);
+                            {sortedRooms.map((room) => {
+                                const roomId = String(room.id ?? room.room_id);
 
                                 const activeDetailTab = activeDetailTabs[roomId] ?? "market";
                                 const isFocused = focusedRoomId === roomId;
@@ -205,23 +231,23 @@ export default function RoomListPanel({
                                 const isFavoriteCompareMode = homeMode === "favoriteCompare";
                                 const isCompareSelected = selectedCompareRoomIds.includes(roomId);
 
-                                const deposit = (room as any).deposit;
-                                const rent = (room as any).rent;
+                                const deposit = room.deposit;
+                                const rent = room.rent;
                                 const address =
-                                    (room as any).address ??
-                                    (room as any).location ??
-                                    (room as any).address_name ??
+                                    room.address ??
+                                    room.location ??
+                                    room.address_name ??
                                     "주소 정보 없음";
 
                                 const roomType =
-                                    (room as any).room_type ??
-                                    (room as any).roomType ??
+                                    room.room_type ??
+                                    room.roomType ??
                                     "매물";
 
                                 const size =
-                                    (room as any).size ??
-                                    (room as any).area ??
-                                    (room as any).room_size ??
+                                    room.size ??
+                                    room.area ??
+                                    room.room_size ??
                                     null;
 
                                 const summaryKey = getSummaryKey(room);
@@ -229,11 +255,6 @@ export default function RoomListPanel({
                                 const isLoading = loadingRoomId === summaryKey;
 
                                 const requestRoomSummary = () => {
-                                    setOpenSummaryIds((prev) => ({
-                                        ...prev,
-                                        [summaryKey]: true,
-                                    }));
-
                                     if (!summary && !isLoading) {
                                         getRoomSummary(room);
                                     }
@@ -241,7 +262,7 @@ export default function RoomListPanel({
 
                                 const isFavorite = favoriteRooms.some((favoriteRoom) => {
                                     const favoriteRoomId = String(
-                                        (favoriteRoom as any).id ?? (favoriteRoom as any).room_id
+                                        favoriteRoom.id ?? favoriteRoom.room_id
                                     );
 
                                     return favoriteRoomId === roomId;
@@ -265,69 +286,70 @@ export default function RoomListPanel({
                                                 return nextFocusedRoomId;
                                             });
                                         }}
-                                        className={`cursor-pointer rounded-2xl border bg-white p-4 shadow-sm transition ${focusedRoomId === roomId
+                                        className={`relative cursor-pointer rounded-2xl border bg-white p-3 shadow-sm transition ${focusedRoomId === roomId
                                             ? "border-blue-400 ring-2 ring-blue-100"
                                             : "border-gray-200 hover:border-gray-300 hover:shadow-md"
                                             }`}
                                     >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex items-start gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+
+                                                if (isFavorite) {
+                                                    removeFavoriteRoom(room);
+                                                    return;
+                                                }
+
+                                                addFavoriteRoom(room);
+                                            }}
+                                            className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 transition hover:scale-110 hover:bg-white active:scale-95"
+                                            aria-label={isFavorite ? "관심 매물 해제" : "관심 매물 추가"}
+                                        >
+                                            <FavoriteHeart isFavorite={isFavorite} />
+                                        </button>
+
+                                        <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-3">
+                                            <div className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-100 text-xs font-bold text-gray-400">
+                                                이미지 없음
                                                 {isFavoriteCompareMode && (
                                                     <input
                                                         type="checkbox"
                                                         checked={isCompareSelected}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onChange={() => toggleCompareRoom(room)}
-                                                        className="mt-1 h-4 w-4 accent-gray-950"
+                                                        className="absolute left-2 top-2 h-4 w-4 accent-gray-950"
                                                     />
                                                 )}
+                                            </div>
 
-                                                <div>
-                                                    <p className="text-base font-extrabold text-gray-950">
+                                            <div className="flex min-w-0 flex-col pr-9 pt-1.5">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-base font-extrabold leading-6 text-gray-950">
                                                         보증금 {deposit} / 월세 {rent}
                                                     </p>
 
-                                                    <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                                                    <p className="mt-1.5 line-clamp-2 text-xs leading-[17px] text-gray-500">
                                                         {address}
                                                     </p>
                                                 </div>
+
+                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                                        {roomType}
+                                                    </span>
+
+                                                    {size && (
+                                                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                                            {size}㎡
+                                                        </span>
+                                                    )}
+
+                                                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                                                        시세와 유사
+                                                    </span>
+                                                </div>
                                             </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-
-                                                    if (isFavorite) {
-                                                        removeFavoriteRoom(room);
-                                                        return;
-                                                    }
-
-                                                    addFavoriteRoom(room);
-                                                }}
-                                                className="-translate-y-1.5 shrink-0 rounded-full p-2 transition hover:scale-110 active:scale-95"
-                                            >
-                                                <FavoriteHeart isFavorite={isFavorite} />
-                                            </button>
-                                        </div>
-
-                                        {/* 매물별 태그 (방 개수, 방 크기, 시세 정보) */}
-                                        <div className="mt-3 flex flex-wrap items-center gap-2">
-
-                                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                                                {roomType}
-                                            </span>
-
-                                            {size && (
-                                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                                                    {size}㎡
-                                                </span>
-                                            )}
-
-                                            {/* 시세 정보 (실거래가 API 가져오기) */}
-                                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                                                <span>시세와 유사</span>
-                                            </span>
                                         </div>
 
                                         {isFocused && (

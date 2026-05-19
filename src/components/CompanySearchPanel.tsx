@@ -1,3 +1,5 @@
+import { MapPin, Search, X } from "lucide-react";
+
 import type { Place } from "@/types/map";
 
 type Props = {
@@ -10,7 +12,8 @@ type Props = {
     isSearching: boolean;
     searchFailed: boolean;
     places: Place[];
-    previewCompanyOnMap: (place: Place) => void;
+    confirmCompany: (place: Place) => void;
+    onClose: () => void;
 };
 
 export default function CompanySearchPanel({
@@ -23,60 +26,97 @@ export default function CompanySearchPanel({
     isSearching,
     searchFailed,
     places,
-    previewCompanyOnMap,
+    confirmCompany,
+    onClose,
 }: Props) {
     return (
-        <div className="mt-4 w-full">
-            <div className="flex w-full items-center gap-3">
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") searchPlace();
-                    }}
-                    placeholder="회사명 또는 주소를 검색하세요"
-                    className="h-12 flex-1 rounded-2xl border border-gray-200 bg-white px-5 text-base font-semibold text-gray-800 shadow-sm outline-none transition placeholder:text-sm placeholder:font-medium placeholder:text-gray-400 focus:border-[#F4C430] focus:ring-4 focus:ring-[#FFF3BF]"
-                />
+        <div className="mt-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+            <div className="mb-3 flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-base font-extrabold text-gray-900">
+                        회사 위치 검색
+                    </p>
+
+                    <p className="mt-1 text-xs font-medium text-gray-500">
+                        회사명이나 주소를 검색해 출퇴근 기준 위치를 설정하세요.
+                    </p>
+                </div>
 
                 <button
                     type="button"
-                    onClick={searchPlace}
-                    className="h-12 shrink-0 rounded-xl bg-(--color-primary) px-6 text-white"
+                    onClick={onClose}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                    aria-label="회사 위치 검색 닫기"
                 >
-                    검색
+                    <X size={18} strokeWidth={2.4} />
                 </button>
             </div>
 
+            <div className="flex w-full items-center gap-3">
+                <div className="relative flex-1">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") searchPlace();
+                        }}
+                        placeholder="회사명 또는 주소를 검색하세요"
+                        className="h-12 w-full rounded-xl border border-gray-300 bg-white pl-4 pr-12 text-base font-semibold text-gray-800 outline-none transition placeholder:text-sm placeholder:font-medium placeholder:text-gray-400 focus:border-[#F4C430] focus:ring-4 focus:ring-[#FFF3BF]"
+                    />
+
+                    <button
+                        type="button"
+                        onClick={searchPlace}
+                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                        aria-label="회사 위치 검색"
+                    >
+                        <Search size={19} strokeWidth={2.4} />
+                    </button>
+                </div>
+            </div>
+
+            {showCompanySearch && isSearching && (
+                <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500">
+                    검색 중입니다.
+                </p>
+            )}
+
             {showCompanySearch && hasSearched && !isSearching && (
-                <div className="mt-3 rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
-                    <p className="mb-3 text-sm font-semibold text-gray-700">
+                <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <p className="border-b border-gray-100 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-700">
                         검색 결과
                     </p>
 
                     {searchFailed ? (
-                        <p className="py-2 pl-3 text-sm text-gray-400">
+                        <p className="px-4 py-5 text-sm text-gray-400">
                             검색 결과가 없습니다. 직접 주소를 입력해 주세요.
                         </p>
                     ) : (
-                        <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                        <div className="max-h-80 overflow-y-auto">
                             {places.map((place) => (
                                 <button
                                     key={place.id}
                                     type="button"
-                                    onClick={() => previewCompanyOnMap(place)}
-                                    className="w-full rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:bg-gray-50"
+                                    onClick={() => confirmCompany(place)}
+                                    className="flex w-full items-start gap-3 border-b border-gray-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-gray-50"
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm font-semibold text-gray-700">
+                                    <MapPin
+                                        size={18}
+                                        strokeWidth={2.3}
+                                        className="mt-0.5 shrink-0 text-gray-500"
+                                    />
+
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-sm font-bold text-gray-900">
                                             {place.place_name}
                                         </span>
 
-                                        <span className="text-sm font-normal text-gray-400">
+                                        <span className="mt-1 block truncate text-sm font-medium text-gray-500">
                                             {place.road_address_name || place.address_name}
                                         </span>
-                                    </div>
+                                    </span>
                                 </button>
                             ))}
                         </div>

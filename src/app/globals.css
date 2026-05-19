@@ -2,7 +2,7 @@
 
 :root {
   --color-bg: #f7f5f2;
-  --color-primary:#2C2C2C;
+  --color-primary: #2C2C2C;
   --color-primary-hover: #929292;
   --color-sub: #f4f1ea;
   --color-border: #d9d6cf;
@@ -32,4 +32,56 @@ body {
 
 button {
   cursor: pointer;
+}
+
+@keyframes home-mode-panel-focus {
+  0% {
+    border-color: #f4c430;
+    box-shadow: 0 0 0 4px #fff3bf;
+  }
+
+  65% {
+    border-color: #f4c430;
+    box-shadow: 0 0 0 4px #fff3bf;
+  }
+
+  100% {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+}
+
+.range-thumb {
+  pointer-events: none;
+}
+
+.range-thumb::-webkit-slider-thumb {
+  pointer-events: auto;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #2563eb;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  cursor: pointer;
+}
+
+.range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #2563eb;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  cursor: pointer;
+}
+
+.range-thumb::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.range-thumb::-moz-range-track {
+  background: transparent;
 }

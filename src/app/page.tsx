@@ -1,10 +1,12 @@
 "use client";
 
+import localFont from "next/font/local";
 import KakaoMap from "../components/KakaoMap";
-import { Outfit } from "next/font/google";
 
-const outfit = Outfit({
-  subsets: ["latin"],
+const outfit = localFont({
+  src: "../../public/fonts/Outfit-Latin.woff2",
+  display: "swap",
+  weight: "100 900",
 });
 
 export default function Home() {
@@ -18,7 +20,7 @@ export default function Home() {
       </h1>
 
       <p className="mt-4 text-lg font-semibold text-gray-600">
-        사회초년생을 위한 생활권 기반 부동산 탐색 서비스
+        사회초년생을 위한 생활권 기반 자취방 탐색 서비스
       </p>
 
       <div className="mt-4">

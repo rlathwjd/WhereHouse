@@ -1,7 +1,7 @@
 "use client";
 
-import { Dispatch, RefObject, SetStateAction } from "react";
-import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Dispatch, RefObject, SetStateAction, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { Place, FilterMenu, HomeMode } from "@/types/map";
 
@@ -37,7 +37,6 @@ type LocationSearchPanelProps = {
     searchFailed: boolean;
 
     searchPlace: () => void;
-    previewCompanyOnMap: (place: Place) => void;
 
     showLocationOption: boolean;
     setShowLocationOption: Dispatch<SetStateAction<boolean>>;
@@ -80,15 +79,25 @@ type LocationSearchPanelProps = {
     selectedRooms: string[];
     setSelectedRooms: Dispatch<SetStateAction<string[]>>;
 
-    deposit: number;
-    setDeposit: Dispatch<SetStateAction<number>>;
-    confirmedDeposit: number;
-    setConfirmedDeposit: Dispatch<SetStateAction<number>>;
+    monthlyDeposit: number;
+    setMonthlyDeposit: Dispatch<SetStateAction<number>>;
+    confirmedMonthlyDeposit: number;
+    setConfirmedMonthlyDeposit: Dispatch<SetStateAction<number>>;
 
-    rent: number;
-    setRent: Dispatch<SetStateAction<number>>;
-    confirmedRent: number;
-    setConfirmedRent: Dispatch<SetStateAction<number>>;
+    monthlyRent: number;
+    setMonthlyRent: Dispatch<SetStateAction<number>>;
+    confirmedMonthlyRent: number;
+    setConfirmedMonthlyRent: Dispatch<SetStateAction<number>>;
+
+    leaseDeposit: number;
+    setLeaseDeposit: Dispatch<SetStateAction<number>>;
+    confirmedLeaseDeposit: number;
+    setConfirmedLeaseDeposit: Dispatch<SetStateAction<number>>;
+
+    salePrice: number;
+    setSalePrice: Dispatch<SetStateAction<number>>;
+    confirmedSalePrice: number;
+    setConfirmedSalePrice: Dispatch<SetStateAction<number>>;
 
     roomSize: number;
     setRoomSize: Dispatch<SetStateAction<number>>;
@@ -126,7 +135,6 @@ export default function LocationSearchPanel({
     searchFailed,
 
     searchPlace,
-    previewCompanyOnMap,
 
     showLocationOption,
     setShowLocationOption,
@@ -134,7 +142,6 @@ export default function LocationSearchPanel({
     showHomeOption,
     setShowHomeOption,
 
-    showHomeFilters,
     setShowHomeFilters,
 
     homeMode,
@@ -169,15 +176,25 @@ export default function LocationSearchPanel({
     selectedRooms,
     setSelectedRooms,
 
-    deposit,
-    setDeposit,
-    confirmedDeposit,
-    setConfirmedDeposit,
+    monthlyDeposit,
+    setMonthlyDeposit,
+    confirmedMonthlyDeposit,
+    setConfirmedMonthlyDeposit,
 
-    rent,
-    setRent,
-    confirmedRent,
-    setConfirmedRent,
+    monthlyRent,
+    setMonthlyRent,
+    confirmedMonthlyRent,
+    setConfirmedMonthlyRent,
+
+    leaseDeposit,
+    setLeaseDeposit,
+    confirmedLeaseDeposit,
+    setConfirmedLeaseDeposit,
+
+    salePrice,
+    setSalePrice,
+    confirmedSalePrice,
+    setConfirmedSalePrice,
 
     roomSize,
     setRoomSize,
@@ -192,15 +209,14 @@ export default function LocationSearchPanel({
 
     compareReport,
 }: LocationSearchPanelProps) {
-    const handleClickHome = () => {
-        setShowCompanySearch(false);
-        setPlaces([]);
-        setKeyword("");
+    const [isHomeModeDetailOpen, setIsHomeModeDetailOpen] = useState(true);
 
+    const handleClickHome = () => {
         clearRoomClusters();
         resetHomeFilters();
 
         setHomeMode(null);
+        setIsHomeModeDetailOpen(true);
 
         setShowLocationOption(true);
         setShowHomeOption((prev) => !prev);
@@ -212,13 +228,10 @@ export default function LocationSearchPanel({
 
     const handleSelectMode = (mode: Exclude<HomeMode, null>) => {
         setHomeMode(mode);
+        setIsHomeModeDetailOpen(true);
 
         setShowLocationOption(true);
         setShowHomeOption(false);
-
-        setShowCompanySearch(false);
-        setPlaces([]);
-        setKeyword("");
         setOpenFilterMenu(null);
 
         if (mode === "condition") {
@@ -239,21 +252,6 @@ export default function LocationSearchPanel({
         }
     };
 
-    const handleChangeSearchMode = () => {
-        clearRoomClusters();
-        resetHomeFilters();
-
-        setHomeMode(null);
-
-        setShowLocationOption(true);
-        setShowHomeOption(true);
-
-        setShowCompanySearch(false);
-        setShowHomeFilters(false);
-        setShowRoomList(false);
-        setOpenFilterMenu(null);
-    };
-
     const handleOpenCompanySearch = () => {
         const next = !showCompanySearch;
 
@@ -268,22 +266,42 @@ export default function LocationSearchPanel({
             return;
         }
 
-        setShowHomeOption(false);
-        setHomeMode(null);
-        setShowHomeFilters(false);
-        setOpenFilterMenu(null);
-        setShowRoomList(false);
-
         setPlaces([]);
         setKeyword("");
         setHasSearched(false);
         setIsEditingCompany(true);
 
-        clearRoomClusters();
-
+        // 집 찾기 모드가 아직 시작되지 않은 경우에만 집 선택 옵션을 닫아도 됨
+        if (!homeMode) {
+            setShowHomeOption(false);
+        }
         setTimeout(() => {
             inputRef.current?.focus();
         }, 0);
+    };
+
+    const handleCloseCompanySearch = () => {
+        setShowCompanySearch(false);
+        setPlaces([]);
+        setKeyword("");
+        setHasSearched(false);
+        setIsEditingCompany(false);
+    };
+
+    const handleCloseHomeOption = () => {
+        setShowHomeOption(false);
+    };
+
+    const toggleHomeModeDetail = () => {
+        setIsHomeModeDetailOpen((prev) => {
+            const next = !prev;
+
+            if (!next) {
+                setOpenFilterMenu(null);
+            }
+
+            return next;
+        });
     };
 
     return (
@@ -336,7 +354,11 @@ export default function LocationSearchPanel({
                                 onOpenCompanySearch={handleOpenCompanySearch}
                             />
 
-                            <HomeCard onClick={handleClickHome} />
+                            <HomeCard
+                                onClick={handleClickHome}
+                                homeMode={homeMode}
+                                showHomeOption={showHomeOption}
+                            />
                         </div>
                     )}
 
@@ -351,111 +373,136 @@ export default function LocationSearchPanel({
                             isSearching={isSearching}
                             searchFailed={searchFailed}
                             places={places}
-                            previewCompanyOnMap={previewCompanyOnMap}
+                            confirmCompany={confirmCompany}
+                            onClose={handleCloseCompanySearch}
                         />
                     )}
 
                     {showHomeOption && (
-                        <HomeSearchModePanel onSelectMode={handleSelectMode} />
-                    )}
-
-                </div>
-            )}
-            {homeMode && (
-                <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="mb-5 flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-sm font-bold text-gray-900">
-                                {HOME_MODE_TEXT[homeMode].title}
-                            </p>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                                {HOME_MODE_TEXT[homeMode].description}
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleChangeSearchMode}
-                            className="flex shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
-                        >
-                            <ArrowLeftRight size={16} strokeWidth={2.4} />
-                            찾기 방식 변경
-                        </button>
-                    </div>
-
-                    {homeMode === "condition" && (
-                        <HomeFilterPanel
-                            openFilterMenu={openFilterMenu}
-                            toggleFilter={toggleFilter}
-                            selectedRegions={selectedRegions}
-                            setSelectedRegions={setSelectedRegions}
-                            selectedRoomTypes={selectedRoomTypes}
-                            setSelectedRoomTypes={setSelectedRoomTypes}
-                            selectedTradeTypes={selectedTradeTypes}
-                            setSelectedTradeTypes={setSelectedTradeTypes}
-                            selectedApprovalDate={selectedApprovalDate}
-                            setSelectedApprovalDate={setSelectedApprovalDate}
-                            selectedRooms={selectedRooms}
-                            setSelectedRooms={setSelectedRooms}
-                            deposit={deposit}
-                            setDeposit={setDeposit}
-                            confirmedDeposit={confirmedDeposit}
-                            setConfirmedDeposit={setConfirmedDeposit}
-                            rent={rent}
-                            setRent={setRent}
-                            confirmedRent={confirmedRent}
-                            setConfirmedRent={setConfirmedRent}
-                            roomSize={roomSize}
-                            setRoomSize={setRoomSize}
-                            confirmedRoomSize={confirmedRoomSize}
-                            setConfirmedRoomSize={setConfirmedRoomSize}
-                            isBudgetTouched={isBudgetTouched}
-                            setIsBudgetTouched={setIsBudgetTouched}
-                            isRoomSizeTouched={isRoomSizeTouched}
-                            setIsRoomSizeTouched={setIsRoomSizeTouched}
+                        <HomeSearchModePanel
+                            onSelectMode={handleSelectMode}
+                            onClose={handleCloseHomeOption}
                         />
                     )}
 
-                    {homeMode === "favoriteCompare" && (
-                        <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                            <h3 className="text-base font-bold text-gray-900">
-                                관심 매물 비교 리포트
-                            </h3>
+                    {homeMode && (
+                        <div className="mt-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                            {homeMode !== "condition" && (
+                                <div className="mb-3 flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-base font-extrabold text-gray-900">
+                                        {HOME_MODE_TEXT[homeMode].title}
+                                    </p>
 
-                            <p className="mt-1 text-sm text-gray-500">
-                                왼쪽 관심 매물 패널에서 비교할 매물을 선택한 뒤 분석 리포트를 생성하세요.
-                            </p>
-
-                            {compareReport ? (
-                                <div className="mt-4 max-h-[260px] overflow-y-auto whitespace-pre-line rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-700">
-                                    {compareReport}
+                                    <p className="mt-1 text-xs font-medium text-gray-500">
+                                        {HOME_MODE_TEXT[homeMode].description}
+                                    </p>
                                 </div>
-                            ) : (
-                                <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
-                                    아직 생성된 분석 리포트가 없습니다.
-                                    <br />
-                                    관심 매물 2개 이상을 선택한 뒤 리포트를 생성하면 이 영역에 표시됩니다.
+
+                                <button
+                                    type="button"
+                                    onClick={toggleHomeModeDetail}
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                                    aria-label={
+                                        isHomeModeDetailOpen
+                                            ? `${HOME_MODE_TEXT[homeMode].title} 세부 옵션 접기`
+                                            : `${HOME_MODE_TEXT[homeMode].title} 세부 옵션 펼치기`
+                                    }
+                                    aria-expanded={isHomeModeDetailOpen}
+                                >
+                                    {isHomeModeDetailOpen ? (
+                                        <ChevronUp size={18} strokeWidth={2.4} />
+                                    ) : (
+                                        <ChevronDown size={18} strokeWidth={2.4} />
+                                    )}
+                                </button>
+                                </div>
+                            )}
+
+                            {homeMode === "condition" && (
+                                <HomeFilterPanel
+                                    isCollapsed={!isHomeModeDetailOpen}
+                                    openFilterMenu={openFilterMenu}
+                                    toggleFilter={toggleFilter}
+                                    selectedRegions={selectedRegions}
+                                    setSelectedRegions={setSelectedRegions}
+                                    selectedRoomTypes={selectedRoomTypes}
+                                    setSelectedRoomTypes={setSelectedRoomTypes}
+                                    selectedTradeTypes={selectedTradeTypes}
+                                    setSelectedTradeTypes={setSelectedTradeTypes}
+                                    selectedApprovalDate={selectedApprovalDate}
+                                    setSelectedApprovalDate={setSelectedApprovalDate}
+                                    selectedRooms={selectedRooms}
+                                    setSelectedRooms={setSelectedRooms}
+                                    monthlyDeposit={monthlyDeposit}
+                                    setMonthlyDeposit={setMonthlyDeposit}
+                                    confirmedMonthlyDeposit={confirmedMonthlyDeposit}
+                                    setConfirmedMonthlyDeposit={setConfirmedMonthlyDeposit}
+                                    monthlyRent={monthlyRent}
+                                    setMonthlyRent={setMonthlyRent}
+                                    confirmedMonthlyRent={confirmedMonthlyRent}
+                                    setConfirmedMonthlyRent={setConfirmedMonthlyRent}
+                                    leaseDeposit={leaseDeposit}
+                                    setLeaseDeposit={setLeaseDeposit}
+                                    confirmedLeaseDeposit={confirmedLeaseDeposit}
+                                    setConfirmedLeaseDeposit={setConfirmedLeaseDeposit}
+                                    salePrice={salePrice}
+                                    setSalePrice={setSalePrice}
+                                    confirmedSalePrice={confirmedSalePrice}
+                                    setConfirmedSalePrice={setConfirmedSalePrice}
+                                    roomSize={roomSize}
+                                    setRoomSize={setRoomSize}
+                                    confirmedRoomSize={confirmedRoomSize}
+                                    setConfirmedRoomSize={setConfirmedRoomSize}
+                                    isBudgetTouched={isBudgetTouched}
+                                    setIsBudgetTouched={setIsBudgetTouched}
+                                    isRoomSizeTouched={isRoomSizeTouched}
+                                    setIsRoomSizeTouched={setIsRoomSizeTouched}
+                                />
+                            )}
+
+                            {homeMode === "favoriteCompare" && isHomeModeDetailOpen && (
+                                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                                    <h3 className="text-base font-bold text-gray-900">
+                                        관심 매물 비교 리포트
+                                    </h3>
+
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        왼쪽 관심 매물 패널에서 비교할 매물을 선택한 뒤 분석 리포트를 생성하세요.
+                                    </p>
+
+                                    {compareReport ? (
+                                        <div className="mt-4 max-h-[260px] overflow-y-auto whitespace-pre-line rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-700">
+                                            {compareReport}
+                                        </div>
+                                    ) : (
+                                        <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                                            아직 생성된 분석 리포트가 없습니다.
+                                            <br />
+                                            관심 매물 2개 이상을 선택한 뒤 리포트를 생성하면 이 영역에 표시됩니다.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {homeMode === "localReview" && isHomeModeDetailOpen && (
+                                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                                    <h3 className="text-base font-bold text-gray-900">
+                                        지역별 거주자/재직자 후기
+                                    </h3>
+
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        지역별 생활·출퇴근 후기를 확인할 수 있습니다.
+                                    </p>
+
+                                    <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                                        지역별 거주자/재직자 후기 기능은 추후 연결 예정입니다.
+                                    </div>
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {homeMode === "localReview" && (
-                        <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                            <h3 className="text-base font-bold text-gray-900">
-                                지역별 거주자/재직자 후기
-                            </h3>
-
-                            <p className="mt-1 text-sm text-gray-500">
-                                지역별 생활·출퇴근 후기를 확인할 수 있습니다.
-                            </p>
-
-                            <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
-                                지역별 거주자/재직자 후기 기능은 추후 연결 예정입니다.
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
         </section>
