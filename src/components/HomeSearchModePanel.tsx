@@ -32,12 +32,9 @@ export default function HomeSearchModePanel({
 
                     <div>
                         <p className="text-base font-extrabold text-gray-900">
-                            집 탐색 조건 선택
+                            집 탐색 옵션
                         </p>
 
-                        <p className="mt-1 text-xs font-medium text-gray-500">
-                            원하는 조건으로 매물을 찾아보세요.
-                        </p>
                     </div>
                 </div>
 

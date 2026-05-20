@@ -22,6 +22,7 @@ import HomeSearchModePanel from "./HomeSearchModePanel";
 type LocationSearchPanelProps = {
     isHomeSearchPanelOpen: boolean;
     setIsHomeSearchPanelOpen: Dispatch<SetStateAction<boolean>>;
+    isMapVisible: boolean;
 
     selectedCompany: Place | null;
 
@@ -54,6 +55,7 @@ type LocationSearchPanelProps = {
     toggleFilter: (menu: FilterMenu) => void;
     setOpenFilterMenu: Dispatch<SetStateAction<FilterMenu>>;
 
+    showRoomList: boolean;
     setShowRoomList: Dispatch<SetStateAction<boolean>>;
     setIsEditingCompany: Dispatch<SetStateAction<boolean>>;
 
@@ -115,6 +117,7 @@ type LocationSearchPanelProps = {
 
 export default function LocationSearchPanel({
     isHomeSearchPanelOpen,
+    isMapVisible,
     selectedCompany,
 
     showCompanySearch,
@@ -145,6 +148,7 @@ export default function LocationSearchPanel({
     toggleFilter,
     setOpenFilterMenu,
 
+    showRoomList,
     setShowRoomList,
     setIsEditingCompany,
 
@@ -330,10 +334,24 @@ export default function LocationSearchPanel({
         });
     };
 
+    const isConditionMode = homeMode === "condition";
+
+    const panelPositionClass = isMapVisible
+        ? `absolute right-0 top-full z-40 mt-3 space-y-3 ${showRoomList ? "left-[460px]" : "left-0"}`
+        : "mt-3 space-y-3";
+
+    const homeModePanelClass =
+        isConditionMode && isMapVisible
+            ? `overflow-hidden border border-gray-200 bg-white shadow-sm ${showRoomList
+                ? "rounded-r-2xl rounded-l-none border-l-0 px-4 py-3"
+                : "rounded-2xl px-4 py-3"
+            }`
+            : "rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm";
+
     return (
-        <section className="space-y-3">
+        <section className="relative space-y-3">
             {showLocationOption && (
-                <div className="grid min-h-[108px] grid-cols-[minmax(0,0.5fr)_400px_minmax(0,0.5fr)] items-stretch gap-3">
+                <div className="grid min-h-[88px] grid-cols-[minmax(0,0.5fr)_360px_minmax(0,0.5fr)] items-stretch gap-3">
                     <div className="min-w-0">
                         <CompanyCard
                             selectedCompany={selectedCompany}
@@ -360,7 +378,7 @@ export default function LocationSearchPanel({
             )}
 
             {isHomeSearchPanelOpen && (showCompanySearch || showHomeOption || homeMode) && (
-                <div className="space-y-3">
+                <div className={panelPositionClass}>
                     {showCompanySearch && (
                         <CompanySearchPanel
                             inputRef={inputRef}
@@ -385,7 +403,7 @@ export default function LocationSearchPanel({
                     )}
 
                     {homeMode && (
-                        <div className="mt-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                        <div className={homeModePanelClass}>
                             {homeMode !== "condition" && (
                                 <div className="mb-3 flex items-start justify-between gap-4">
                                     <div>
@@ -415,45 +433,48 @@ export default function LocationSearchPanel({
                             )}
 
                             {homeMode === "condition" && (
-                                <HomeFilterPanel
-                                    isCollapsed={!isHomeModeDetailOpen}
-                                    openFilterMenu={openFilterMenu}
-                                    toggleFilter={toggleFilter}
-                                    selectedRegions={selectedRegions}
-                                    setSelectedRegions={setSelectedRegions}
-                                    selectedRoomTypes={selectedRoomTypes}
-                                    setSelectedRoomTypes={setSelectedRoomTypes}
-                                    selectedTradeTypes={selectedTradeTypes}
-                                    setSelectedTradeTypes={setSelectedTradeTypes}
-                                    selectedApprovalDate={selectedApprovalDate}
-                                    setSelectedApprovalDate={setSelectedApprovalDate}
-                                    selectedRooms={selectedRooms}
-                                    setSelectedRooms={setSelectedRooms}
-                                    monthlyDeposit={monthlyDeposit}
-                                    setMonthlyDeposit={setMonthlyDeposit}
-                                    confirmedMonthlyDeposit={confirmedMonthlyDeposit}
-                                    setConfirmedMonthlyDeposit={setConfirmedMonthlyDeposit}
-                                    monthlyRent={monthlyRent}
-                                    setMonthlyRent={setMonthlyRent}
-                                    confirmedMonthlyRent={confirmedMonthlyRent}
-                                    setConfirmedMonthlyRent={setConfirmedMonthlyRent}
-                                    leaseDeposit={leaseDeposit}
-                                    setLeaseDeposit={setLeaseDeposit}
-                                    confirmedLeaseDeposit={confirmedLeaseDeposit}
-                                    setConfirmedLeaseDeposit={setConfirmedLeaseDeposit}
-                                    salePrice={salePrice}
-                                    setSalePrice={setSalePrice}
-                                    confirmedSalePrice={confirmedSalePrice}
-                                    setConfirmedSalePrice={setConfirmedSalePrice}
-                                    roomSize={roomSize}
-                                    setRoomSize={setRoomSize}
-                                    confirmedRoomSize={confirmedRoomSize}
-                                    setConfirmedRoomSize={setConfirmedRoomSize}
-                                    isBudgetTouched={isBudgetTouched}
-                                    setIsBudgetTouched={setIsBudgetTouched}
-                                    isRoomSizeTouched={isRoomSizeTouched}
-                                    setIsRoomSizeTouched={setIsRoomSizeTouched}
-                                />
+                                <div>
+                                    <HomeFilterPanel
+                                        isCollapsed={!isHomeModeDetailOpen}
+                                        isAttachedToRoomList={isMapVisible && showRoomList}
+                                        openFilterMenu={openFilterMenu}
+                                        toggleFilter={toggleFilter}
+                                        selectedRegions={selectedRegions}
+                                        setSelectedRegions={setSelectedRegions}
+                                        selectedRoomTypes={selectedRoomTypes}
+                                        setSelectedRoomTypes={setSelectedRoomTypes}
+                                        selectedTradeTypes={selectedTradeTypes}
+                                        setSelectedTradeTypes={setSelectedTradeTypes}
+                                        selectedApprovalDate={selectedApprovalDate}
+                                        setSelectedApprovalDate={setSelectedApprovalDate}
+                                        selectedRooms={selectedRooms}
+                                        setSelectedRooms={setSelectedRooms}
+                                        monthlyDeposit={monthlyDeposit}
+                                        setMonthlyDeposit={setMonthlyDeposit}
+                                        confirmedMonthlyDeposit={confirmedMonthlyDeposit}
+                                        setConfirmedMonthlyDeposit={setConfirmedMonthlyDeposit}
+                                        monthlyRent={monthlyRent}
+                                        setMonthlyRent={setMonthlyRent}
+                                        confirmedMonthlyRent={confirmedMonthlyRent}
+                                        setConfirmedMonthlyRent={setConfirmedMonthlyRent}
+                                        leaseDeposit={leaseDeposit}
+                                        setLeaseDeposit={setLeaseDeposit}
+                                        confirmedLeaseDeposit={confirmedLeaseDeposit}
+                                        setConfirmedLeaseDeposit={setConfirmedLeaseDeposit}
+                                        salePrice={salePrice}
+                                        setSalePrice={setSalePrice}
+                                        confirmedSalePrice={confirmedSalePrice}
+                                        setConfirmedSalePrice={setConfirmedSalePrice}
+                                        roomSize={roomSize}
+                                        setRoomSize={setRoomSize}
+                                        confirmedRoomSize={confirmedRoomSize}
+                                        setConfirmedRoomSize={setConfirmedRoomSize}
+                                        isBudgetTouched={isBudgetTouched}
+                                        setIsBudgetTouched={setIsBudgetTouched}
+                                        isRoomSizeTouched={isRoomSizeTouched}
+                                        setIsRoomSizeTouched={setIsRoomSizeTouched}
+                                    />
+                                </div>
                             )}
 
                             {homeMode === "favoriteCompare" && isHomeModeDetailOpen && (

@@ -6,7 +6,6 @@ import {
   Maximize2,
   Bed,
   CalendarDays,
-  Search,
 } from "lucide-react";
 
 import type { FilterMenu } from "@/types/map";
@@ -159,6 +158,7 @@ type BudgetMaxControlProps = {
 
 type Props = {
   isCollapsed?: boolean;
+  isAttachedToRoomList?: boolean;
 
   openFilterMenu: FilterMenu;
   toggleFilter: (menu: FilterMenu) => void;
@@ -241,7 +241,7 @@ function BudgetMaxControl({
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-bold text-slate-900">{title}</p>
@@ -253,8 +253,10 @@ function BudgetMaxControl({
         </div>
       </div>
 
-      <label className="mt-4 block">
-        <span className="text-xs font-semibold text-slate-500">{inputLabel}</span>
+      <label className="mt-3 block">
+        <span className="text-xs font-semibold text-slate-500">
+          {inputLabel}
+        </span>
 
         <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 transition focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100">
           <input
@@ -275,7 +277,7 @@ function BudgetMaxControl({
         </div>
       </label>
 
-      <div className="mt-6">
+      <div className="mt-4">
         <div className="relative h-7">
           <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200" />
 
@@ -308,6 +310,7 @@ function BudgetMaxControl({
 
 export default function HomeFilterPanel({
   isCollapsed = false,
+  isAttachedToRoomList = false,
 
   openFilterMenu,
   toggleFilter,
@@ -329,27 +332,22 @@ export default function HomeFilterPanel({
 
   monthlyDeposit,
   setMonthlyDeposit,
-  confirmedMonthlyDeposit,
   setConfirmedMonthlyDeposit,
 
   monthlyRent,
   setMonthlyRent,
-  confirmedMonthlyRent,
   setConfirmedMonthlyRent,
 
   leaseDeposit,
   setLeaseDeposit,
-  confirmedLeaseDeposit,
   setConfirmedLeaseDeposit,
 
   salePrice,
   setSalePrice,
-  confirmedSalePrice,
   setConfirmedSalePrice,
 
   roomSize,
   setRoomSize,
-  confirmedRoomSize,
   setConfirmedRoomSize,
 
   isBudgetTouched,
@@ -409,13 +407,10 @@ export default function HomeFilterPanel({
   };
 
   const pillClass = (isSelected: boolean) =>
-    `rounded-full border px-4 py-2 text-xs font-semibold transition ${isSelected
+    `rounded-full border px-3 py-1.5 text-xs font-semibold transition ${isSelected
       ? "border-blue-300 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100"
       : "border-[var(--color-border)] bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
     }`;
-
-  const conditionTagClass =
-    "rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm ring-1 ring-blue-100";
 
   const formatKoreanMoney = (value: number) => {
     if (value >= 10000) {
@@ -445,6 +440,36 @@ export default function HomeFilterPanel({
     selectedRooms.length > 0 ||
     Boolean(selectedApprovalDate);
 
+  const getFilterSummary = (key: FilterMenu) => {
+    if (key === "region") {
+      return selectedRegions.length > 0 ? `${selectedRegions.length}` : null;
+    }
+
+    if (key === "roomType") {
+      return selectedRoomTypes.length > 0 ? `${selectedRoomTypes.length}` : null;
+    }
+
+    if (key === "budget") {
+      return isBudgetTouched && selectedTradeTypes.length > 0
+        ? selectedTradeTypes.join("/")
+        : null;
+    }
+
+    if (key === "roomSize") {
+      return isRoomSizeTouched ? `${roomSize}평+` : null;
+    }
+
+    if (key === "rooms") {
+      return selectedRooms.length > 0 ? `${selectedRooms.length}` : null;
+    }
+
+    if (key === "approvalDate") {
+      return selectedApprovalDate;
+    }
+
+    return null;
+  };
+
   const activeRegionGroupData = REGION_GROUPS.find(
     (group) => group.key === activeRegionGroup
   );
@@ -467,36 +492,6 @@ export default function HomeFilterPanel({
 
       return Array.from(new Set([...prev, ...activeRegionValues]));
     });
-  };
-
-  const getRegionConditionText = () => {
-    const result: string[] = [];
-    const partialRegions: string[] = [];
-
-    REGION_GROUPS.forEach((group) => {
-      const groupValues = group.items.map(
-        (item) => `${group.valuePrefix} ${item}`
-      );
-
-      const isAllSelected = groupValues.every((value) =>
-        selectedRegions.includes(value)
-      );
-
-      if (isAllSelected) {
-        result.push(`${group.label} 전체`);
-        return;
-      }
-
-      group.items.forEach((item) => {
-        const value = `${group.valuePrefix} ${item}`;
-
-        if (selectedRegions.includes(value)) {
-          partialRegions.push(`${group.label} ${item}`);
-        }
-      });
-    });
-
-    return [...result, ...partialRegions].join(", ");
   };
 
   const resetSelectedConditions = () => {
@@ -526,116 +521,160 @@ export default function HomeFilterPanel({
     }
   };
 
+  const applyCurrentFilter = () => {
+    if (openFilterMenu === "budget") {
+      selectedTradeTypes.forEach((tradeType) => {
+        if (TRADE_TYPES.includes(tradeType as TradeType)) {
+          confirmBudgetValue(tradeType as TradeType);
+        }
+      });
+    }
+
+    if (openFilterMenu === "roomSize") {
+      setConfirmedRoomSize(roomSize);
+    }
+
+    if (openFilterMenu) {
+      toggleFilter(openFilterMenu);
+    }
+  };
+
+  const expandedPanelClass = `mt-3 overflow-visible border border-slate-200 bg-white p-4 shadow-sm ${isAttachedToRoomList
+    ? "rounded-r-2xl rounded-l-none border-l-0"
+    : "rounded-2xl"
+    }`;
+
   return (
     <div>
       {/* 조건 필터 */}
       <div className={`${isCollapsed ? "hidden" : ""}`}>
-        <div className="flex flex-wrap gap-2 text-sm">
-          {FILTER_MENUS.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => {
-                const menu = key as FilterMenu;
-                const isOpeningMenu = openFilterMenu !== menu;
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <div className="flex flex-wrap gap-2">
+            {FILTER_MENUS.map(({ key, label, icon: Icon }) => {
+              const summary = getFilterSummary(key);
+              const isActive = openFilterMenu === key || Boolean(summary);
 
-                toggleFilter(menu);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    const menu = key as FilterMenu;
+                    const isOpeningMenu = openFilterMenu !== menu;
 
-                if (key === "budget" && isOpeningMenu) {
-                  activateBudgetTab(budgetTab);
-                }
+                    toggleFilter(menu);
 
-                if (key === "roomSize" && isOpeningMenu) {
-                  setIsRoomSizeTouched(true);
-                  setConfirmedRoomSize(roomSize);
-                }
-              }}
-              className={`flex h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-bold transition ${openFilterMenu === key
-                ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100"
-                : "border-gray-200 bg-white text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                }`}
-            >
-              <Icon size={17} strokeWidth={2.4} />
-              {label}
-            </button>
-          ))}
+                    if (key === "budget" && isOpeningMenu) {
+                      activateBudgetTab(budgetTab);
+                    }
+
+                    if (key === "roomSize" && isOpeningMenu) {
+                      setIsRoomSizeTouched(true);
+                      setConfirmedRoomSize(roomSize);
+                    }
+                  }}
+                  className={`flex h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-bold transition ${isActive
+                    ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100"
+                    : "border-gray-200 bg-white text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                    }`}
+                >
+                  <Icon size={17} strokeWidth={2.4} />
+                  <span>{label}</span>
+                  {summary && (
+                    <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                      {summary}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={resetSelectedConditions}
+            disabled={!hasSelectedConditions}
+            className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            조건 초기화
+          </button>
         </div>
       </div>
 
       {/* 조건 필터 클릭 시 나오는 화면 */}
       {!isCollapsed && openFilterMenu && (
-        <div className="mt-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.15)]">
+        <div className={expandedPanelClass}>
           {openFilterMenu === "region" && (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-start gap-2">
-                  {REGION_GROUPS.map((group) => {
-                    const isActive = activeRegionGroup === group.key;
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-start gap-2">
+                {REGION_GROUPS.map((group) => {
+                  const isActive = activeRegionGroup === group.key;
 
-                    return (
-                      <button
-                        key={group.key}
-                        type="button"
-                        onClick={() => setActiveRegionGroup(group.key)}
-                        className={`min-w-[64px] rounded-full border px-3.5 py-2 text-sm font-bold transition ${isActive
-                          ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                          }`}
-                      >
-                        {group.label}
-                      </button>
-                    );
-                  })}
+                  return (
+                    <button
+                      key={group.key}
+                      type="button"
+                      onClick={() => setActiveRegionGroup(group.key)}
+                      className={`min-w-[56px] rounded-full border px-3 py-1.5 text-xs font-bold transition ${isActive
+                        ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        }`}
+                    >
+                      {group.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="my-3 border-t border-gray-200" />
+
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5">
+                <div>
+                  <p className="text-sm font-bold text-slate-800">
+                    {
+                      REGION_GROUPS.find(
+                        (group) => group.key === activeRegionGroup
+                      )?.label
+                    }{" "}
+                    지역
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    선택된 지역{" "}
+                    {
+                      activeRegionValues.filter((value) =>
+                        selectedRegions.includes(value)
+                      ).length
+                    }{" "}
+                    / {activeRegionItems.length}
+                  </p>
                 </div>
 
-                <div className="my-4 border-t border-gray-200" />
+                <button
+                  type="button"
+                  onClick={toggleAllActiveRegions}
+                  className="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  {isAllActiveRegionsSelected ? "전체 해제" : "전체 선택"}
+                </button>
+              </div>
 
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">
-                      {
-                        REGION_GROUPS.find(
-                          (group) => group.key === activeRegionGroup
-                        )?.label
-                      }{" "}
-                      지역
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      선택된 지역{" "}
-                      {
-                        activeRegionValues.filter((value) =>
-                          selectedRegions.includes(value)
-                        ).length
-                      }{" "}
-                      / {activeRegionItems.length}
-                    </p>
-                  </div>
+              <div className="grid grid-cols-4 gap-2 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+                {activeRegionItems.map((item) => {
+                  const value = `${activeRegionGroupData?.valuePrefix} ${item}`;
+                  const isSelected = selectedRegions.includes(value);
 
-                  <button
-                    type="button"
-                    onClick={toggleAllActiveRegions}
-                    className="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                  >
-                    {isAllActiveRegionsSelected ? "전체 해제" : "전체 선택"}
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-6 gap-2">
-                  {activeRegionItems.map((item) => {
-                    const value = `${activeRegionGroupData?.valuePrefix} ${item}`;
-                    const isSelected = selectedRegions.includes(value);
-
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => toggleOption(value, setSelectedRegions)}
-                        className={pillClass(isSelected)}
-                      >
-                        {item}
-                      </button>
-                    );
-                  })}
-                </div>
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => toggleOption(value, setSelectedRegions)}
+                      className={pillClass(isSelected)}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -659,130 +698,128 @@ export default function HomeFilterPanel({
           )}
 
           {openFilterMenu === "budget" && (
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                {/* 월세 / 전세 / 매매 탭 */}
-                <div className="grid grid-cols-3 border-b border-gray-200 text-sm font-bold">
-                  {TRADE_TYPES.map((tradeType) => {
-                    const tabKey = TRADE_TYPE_TO_BUDGET_TAB[tradeType];
-                    const isActive = tabKey === budgetTab;
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="grid grid-cols-3 border-b border-gray-200 text-sm font-bold">
+                {TRADE_TYPES.map((tradeType) => {
+                  const tabKey = TRADE_TYPE_TO_BUDGET_TAB[tradeType];
+                  const isActive = tabKey === budgetTab;
 
-                    return (
-                      <button
-                        key={tradeType}
-                        type="button"
-                        onClick={() => activateBudgetTab(tabKey)}
-                        className={`py-3 transition ${isActive
-                          ? "border-b-2 border-blue-600 text-blue-600"
-                          : "text-gray-500 hover:bg-gray-50"
-                          }`}
-                      >
-                        {tradeType}
-                      </button>
-                    );
-                  })}
-                </div>
+                  return (
+                    <button
+                      key={tradeType}
+                      type="button"
+                      onClick={() => activateBudgetTab(tabKey)}
+                      className={`py-2.5 transition ${isActive
+                        ? "border-b-2 border-blue-600 text-blue-600"
+                        : "text-gray-500 hover:bg-gray-50"
+                        }`}
+                    >
+                      {tradeType}
+                    </button>
+                  );
+                })}
+              </div>
 
-                {/* 탭별 가격 조건 */}
-                <div className="bg-slate-50 p-5">
-                  {budgetTab === "monthly" && (
-                    <div className="grid gap-5 lg:grid-cols-2">
-                      <BudgetMaxControl
-                        title="보증금"
-                        subtitle="월세 보증금 최대값"
-                        value={monthlyDeposit}
-                        maxLimit={20000}
-                        step={500}
-                        unit="만원"
-                        badgeText={
-                          monthlyDeposit >= 20000
-                            ? "무제한"
-                            : `${formatKoreanMoney(monthlyDeposit)} 이하`
-                        }
-                        inputLabel="최대 금액"
-                        minLabel="0"
-                        maxLabel={`${formatKoreanMoney(20000)}+`}
-                        placeholder="예: 7000"
-                        onChange={(value) => {
-                          markBudgetTouched("월세");
-                          setMonthlyDeposit(value);
-                        }}
-                        onConfirm={setConfirmedMonthlyDeposit}
-                      />
-
-                      <BudgetMaxControl
-                        title="월세"
-                        subtitle="월세 최대값"
-                        value={monthlyRent}
-                        maxLimit={150}
-                        step={5}
-                        unit="만원"
-                        badgeText={
-                          monthlyRent >= 150 ? "무제한" : `${monthlyRent}만원 이하`
-                        }
-                        inputLabel="최대 금액"
-                        minLabel="0"
-                        maxLabel={`${formatKoreanMoney(150)}+`}
-                        placeholder="예: 50"
-                        onChange={(value) => {
-                          markBudgetTouched("월세");
-                          setMonthlyRent(value);
-                        }}
-                        onConfirm={setConfirmedMonthlyRent}
-                      />
-                    </div>
-                  )}
-
-                  {budgetTab === "lease" && (
+              <div className="bg-slate-50 p-4">
+                {budgetTab === "monthly" && (
+                  <div className="grid gap-4 lg:grid-cols-2">
                     <BudgetMaxControl
-                      title="전세금"
-                      subtitle="전세 보증금 최대값"
-                      value={leaseDeposit}
+                      title="보증금"
+                      subtitle="월세 보증금 최대값"
+                      value={monthlyDeposit}
                       maxLimit={20000}
                       step={500}
                       unit="만원"
                       badgeText={
-                        leaseDeposit >= 20000
+                        monthlyDeposit >= 20000
                           ? "무제한"
-                          : `${formatKoreanMoney(leaseDeposit)} 이하`
+                          : `${formatKoreanMoney(monthlyDeposit)} 이하`
                       }
                       inputLabel="최대 금액"
                       minLabel="0"
                       maxLabel={`${formatKoreanMoney(20000)}+`}
-                      placeholder="예: 20000"
+                      placeholder="예: 7000"
                       onChange={(value) => {
-                        markBudgetTouched("전세");
-                        setLeaseDeposit(value);
+                        markBudgetTouched("월세");
+                        setMonthlyDeposit(value);
                       }}
-                      onConfirm={setConfirmedLeaseDeposit}
+                      onConfirm={setConfirmedMonthlyDeposit}
                     />
-                  )}
 
-                  {budgetTab === "sale" && (
                     <BudgetMaxControl
-                      title="매매가"
-                      subtitle="매매 금액 최대값"
-                      value={salePrice}
-                      maxLimit={500000}
-                      step={5000}
+                      title="월세"
+                      subtitle="월세 최대값"
+                      value={monthlyRent}
+                      maxLimit={150}
+                      step={5}
                       unit="만원"
                       badgeText={
-                        salePrice >= 500000
-                          ? "무제한"
-                          : `${formatKoreanMoney(salePrice)} 이하`
+                        monthlyRent >= 150 ? "무제한" : `${monthlyRent}만원 이하`
                       }
                       inputLabel="최대 금액"
                       minLabel="0"
-                      maxLabel={`${formatKoreanMoney(500000)}+`}
-                      placeholder="예: 50000"
+                      maxLabel={`${formatKoreanMoney(150)}+`}
+                      placeholder="예: 50"
                       onChange={(value) => {
-                        markBudgetTouched("매매");
-                        setSalePrice(value);
+                        markBudgetTouched("월세");
+                        setMonthlyRent(value);
                       }}
-                      onConfirm={setConfirmedSalePrice}
+                      onConfirm={setConfirmedMonthlyRent}
                     />
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {budgetTab === "lease" && (
+                  <BudgetMaxControl
+                    title="전세금"
+                    subtitle="전세 보증금 최대값"
+                    value={leaseDeposit}
+                    maxLimit={20000}
+                    step={500}
+                    unit="만원"
+                    badgeText={
+                      leaseDeposit >= 20000
+                        ? "무제한"
+                        : `${formatKoreanMoney(leaseDeposit)} 이하`
+                    }
+                    inputLabel="최대 금액"
+                    minLabel="0"
+                    maxLabel={`${formatKoreanMoney(20000)}+`}
+                    placeholder="예: 20000"
+                    onChange={(value) => {
+                      markBudgetTouched("전세");
+                      setLeaseDeposit(value);
+                    }}
+                    onConfirm={setConfirmedLeaseDeposit}
+                  />
+                )}
+
+                {budgetTab === "sale" && (
+                  <BudgetMaxControl
+                    title="매매가"
+                    subtitle="매매 금액 최대값"
+                    value={salePrice}
+                    maxLimit={500000}
+                    step={5000}
+                    unit="만원"
+                    badgeText={
+                      salePrice >= 500000
+                        ? "무제한"
+                        : `${formatKoreanMoney(salePrice)} 이하`
+                    }
+                    inputLabel="최대 금액"
+                    minLabel="0"
+                    maxLabel={`${formatKoreanMoney(500000)}+`}
+                    placeholder="예: 50000"
+                    onChange={(value) => {
+                      markBudgetTouched("매매");
+                      setSalePrice(value);
+                    }}
+                    onConfirm={setConfirmedSalePrice}
+                  />
+                )}
               </div>
+            </div>
           )}
 
           {openFilterMenu === "roomSize" && (
@@ -808,7 +845,7 @@ export default function HomeFilterPanel({
           )}
 
           {openFilterMenu === "rooms" && (
-            <div className="grid gap-2 grid-cols-4">
+            <div className="grid grid-cols-4 gap-2">
               {ROOM_COUNTS.map((item) => {
                 const isSelected = selectedRooms.includes(item);
 
@@ -827,7 +864,7 @@ export default function HomeFilterPanel({
           )}
 
           {openFilterMenu === "approvalDate" && (
-            <div className="grid gap-2 grid-cols-4">
+            <div className="grid grid-cols-4 gap-2">
               {APPROVAL_DATES.map((item) => {
                 const isSelected = selectedApprovalDate === item;
 
@@ -848,135 +885,19 @@ export default function HomeFilterPanel({
               })}
             </div>
           )}
+
+          <div className="mt-4 flex justify-end border-t border-slate-100 pt-3">
+            <button
+              type="button"
+              onClick={applyCurrentFilter}
+              className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-extrabold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              적용
+            </button>
+          </div>
         </div>
       )}
 
-      {/* 선택한 조건 */}
-      <div
-        className={`${isCollapsed ? "mt-3" : "mt-4"
-          } rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm`}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-1.5">
-            {!isCollapsed && (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-900">
-                <Search size={20} strokeWidth={2.5} />
-              </span>
-            )}
-
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              <p className="shrink-0 text-sm font-extrabold text-slate-900">
-                선택한 조건
-              </p>
-
-              {!isCollapsed && (
-                <p className="min-w-0 text-xs font-medium text-gray-500">
-                  적용 중인 필터를 한눈에 확인하세요.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={resetSelectedConditions}
-            disabled={!hasSelectedConditions}
-            className="shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600 transition hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            조건 초기화
-          </button>
-        </div>
-
-        <div
-          className={`${isCollapsed
-            ? "mt-2 border-0 bg-transparent px-0 py-0"
-            : "mt-4 border border-gray-100 bg-gray-50 px-3 py-3"
-            } flex min-h-9 flex-wrap items-center gap-2 rounded-xl text-xs`}
-        >
-          {selectedRegions.length > 0 && (
-            <span className={conditionTagClass}>
-              지역: {getRegionConditionText()}
-            </span>
-          )}
-
-          {selectedRoomTypes.length > 0 && (
-            <span className={conditionTagClass}>
-              매물 유형: {selectedRoomTypes.join(", ")}
-            </span>
-          )}
-
-          {selectedTradeTypes.length > 0 && (
-            <span className={conditionTagClass}>
-              거래 유형: {selectedTradeTypes.join(", ")}
-            </span>
-          )}
-
-          {isBudgetTouched && selectedTradeTypes.includes("월세") && (
-            <>
-              <span className={conditionTagClass}>
-                월세 보증금:{" "}
-                {confirmedMonthlyDeposit >= 20000
-                  ? "무제한"
-                  : formatKoreanMoney(confirmedMonthlyDeposit)}{" "}
-                이하
-              </span>
-
-              <span className={conditionTagClass}>
-                월세:{" "}
-                {confirmedMonthlyRent >= 150
-                  ? "무제한"
-                  : `${confirmedMonthlyRent}만원`}{" "}
-                이하
-              </span>
-            </>
-          )}
-
-          {isBudgetTouched && selectedTradeTypes.includes("전세") && (
-            <span className={conditionTagClass}>
-              전세금:{" "}
-              {confirmedLeaseDeposit >= 20000
-                ? "무제한"
-                : formatKoreanMoney(confirmedLeaseDeposit)}{" "}
-              이하
-            </span>
-          )}
-
-          {isBudgetTouched && selectedTradeTypes.includes("매매") && (
-            <span className={conditionTagClass}>
-              매매가:{" "}
-              {confirmedSalePrice >= 500000
-                ? "무제한"
-                : formatKoreanMoney(confirmedSalePrice)}{" "}
-              이하
-            </span>
-          )}
-
-          {isRoomSizeTouched && (
-            <span className={conditionTagClass}>
-              방 크기: {confirmedRoomSize}평 이상
-            </span>
-          )}
-
-          {selectedRooms.length > 0 && (
-            <span className={conditionTagClass}>
-              방 개수: {selectedRooms.join(", ")}
-            </span>
-          )}
-
-          {selectedApprovalDate && (
-            <span className={conditionTagClass}>
-              사용승인일: {selectedApprovalDate}
-            </span>
-          )}
-
-          {!hasSelectedConditions && (
-            <span className="text-sm font-medium text-gray-400">
-              아직 선택한 조건이 없습니다.
-            </span>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
-

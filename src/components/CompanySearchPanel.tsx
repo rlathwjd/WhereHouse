@@ -1,4 +1,4 @@
-import { MapPin, Search, X } from "lucide-react";
+import { MapPin, Building2, Search, X } from "lucide-react";
 
 import type { Place } from "@/types/map";
 
@@ -34,16 +34,16 @@ export default function CompanySearchPanel({
             <div className="mb-3 flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]">
-                        <MapPin size={20} strokeWidth={2.2} />
+                        <Building2
+                            size={20}
+                            className="text-[#2563EB]"
+                            strokeWidth={2.2}
+                        />
                     </span>
 
                     <div>
                         <p className="text-base font-extrabold text-gray-900">
                             회사 위치 검색
-                        </p>
-
-                        <p className="mt-1 text-xs font-medium text-gray-500">
-                            회사명이나 주소를 검색해 출퇴근 기준 위치를 설정하세요.
                         </p>
                     </div>
                 </div>

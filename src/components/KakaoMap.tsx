@@ -32,6 +32,7 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
    * 지도 관련 DOM 참조
    */
   const mapRef = useRef<KakaoMapInstance | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const markerRef = useRef<KakaoMapEntity | null>(null);
   const infoWindowRef = useRef<KakaoInfoWindow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -161,7 +162,7 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
   const isRoomMap = homeMode === "condition" || homeMode === "favoriteCompare";
   const kakaoMapKey = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
   const shouldShowKakaoMapError = kakaoMapLoadFailed || !kakaoMapKey;
-  const shouldShowMap = Boolean(confirmedCompany) || isRoomMap;
+  const shouldShowMap = isRoomMap;
 
   const visibleRooms =
     selectedClusterRooms.length > 0 ? selectedClusterRooms : filteredRooms;
@@ -180,6 +181,7 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
         : "전체 매물";
 
   const [isSearchInMapArea, setIsSearchInMapArea] = useState(true);
+  const mapSectionTopClass = shouldShowMap ? "" : "mt-3";
 
   /**
    * Kakao SDK 로드
@@ -256,7 +258,7 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
    */
   const initializeMap = (place?: Place) => {
     try {
-      const container = document.getElementById("map");
+      const container = mapContainerRef.current;
       if (!container) return;
 
       const kakaoMaps = window.kakao?.maps;
@@ -485,6 +487,16 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmedCompany, isKakaoMapReady, shouldShowMap]);
 
+  useEffect(() => {
+    if (shouldShowMap) return;
+
+    markerRef.current?.setMap(null);
+    infoWindowRef.current?.close();
+    markerRef.current = null;
+    infoWindowRef.current = null;
+    mapRef.current = null;
+  }, [shouldShowMap]);
+
   /**
    * 상단 패널 높이가 바뀌면 지도 영역 크기 재계산
    */
@@ -594,12 +606,12 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
         <div className="w-full pb-4 lg:pb-0 lg:pt-1">
           <h1
             onClick={() => window.location.reload()}
-            className={`${titleClassName} cursor-pointer text-4xl font-bold tracking-tight`}
+            className={`${titleClassName} cursor-pointer text-2xl font-bold tracking-tight`}
           >
             WhereHouse
           </h1>
 
-          <p className="mt-2 ml-0.5 text-base font-semibold text-gray-600">
+          <p className="mt-2 ml-0.5 text-sm font-semibold text-gray-600">
             사회초년생을 위한 생활권 기반 자취방 탐색 서비스
           </p>
         </div>
@@ -609,6 +621,7 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
           <LocationSearchPanel
             isHomeSearchPanelOpen={isHomeSearchPanelOpen}
             setIsHomeSearchPanelOpen={setIsHomeSearchPanelOpen}
+            isMapVisible={shouldShowMap}
             selectedCompany={selectedCompany}
             showCompanySearch={showCompanySearch}
             setShowCompanySearch={setShowCompanySearch}
@@ -632,6 +645,7 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
             openFilterMenu={openFilterMenu}
             toggleFilter={toggleFilter}
             setOpenFilterMenu={setOpenFilterMenu}
+            showRoomList={showRoomList}
             setShowRoomList={setShowRoomList}
             setIsEditingCompany={setIsEditingCompany}
             inputRef={inputRef}
@@ -679,9 +693,9 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
       </div>
 
       {/* 지도/홈 화면 영역 */}
-      <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm">
+      <div className={`relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm ${mapSectionTopClass}`}>
         {shouldShowMap ? (
-          <div id="map" className="h-full w-full bg-gray-200" />
+          <div ref={mapContainerRef} id="map" className="h-full w-full bg-gray-200" />
         ) : (
           <HomeIntroPanel />
         )}
@@ -693,8 +707,7 @@ export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
           <button
             type="button"
             onClick={() => setIsSearchInMapArea((prev) => !prev)}
-            className={`absolute top-4 z-20 flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-800 shadow-md transition hover:bg-gray-50 ${showRoomList ? "left-[476px]" : "left-4"
-              }`}
+            className="absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-800 shadow-md transition hover:bg-gray-50"
           >
             <input
               type="checkbox"
