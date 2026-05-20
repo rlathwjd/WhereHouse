@@ -50,8 +50,6 @@ export function useRoomSummary(confirmedCompany: Place | null) {
 
             const data = await res.json();
 
-            console.log("AI 요약 응답:", data);
-
             if (!res.ok) {
                 setRoomSummaries((prev) => ({
                     ...prev,

@@ -52,6 +52,7 @@ export default function KakaoMap() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchFailed, setSearchFailed] = useState(false);
+  const [kakaoMapLoadFailed, setKakaoMapLoadFailed] = useState(false);
 
   /**
    * 회사 위치 선택 상태
@@ -149,6 +150,8 @@ export default function KakaoMap() {
    * 화면 표시용 값
    */
   const isRoomMap = homeMode === "condition" || homeMode === "favoriteCompare";
+  const kakaoMapKey = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
+  const shouldShowKakaoMapError = kakaoMapLoadFailed || !kakaoMapKey;
 
   const visibleRooms =
     selectedClusterRooms.length > 0 ? selectedClusterRooms : filteredRooms;
@@ -172,25 +175,41 @@ export default function KakaoMap() {
    * 지도 초기화
    */
   const initializeMap = () => {
-    if (!window.kakao?.maps) return;
+    if (!window.kakao?.maps) {
+      setKakaoMapLoadFailed(true);
+      return;
+    }
 
     window.kakao.maps.load(() => {
-      const container = document.getElementById("map");
-      if (!container) return;
-      const kakaoMaps = window.kakao?.maps;
-      if (!kakaoMaps) return;
+      try {
+        const container = document.getElementById("map");
+        if (!container) {
+          setKakaoMapLoadFailed(true);
+          return;
+        }
 
-      const map = new kakaoMaps.Map(container, {
-        center: new kakaoMaps.LatLng(37.5665, 126.978),
-        level: 8,
-      });
+        const kakaoMaps = window.kakao?.maps;
+        if (!kakaoMaps) {
+          setKakaoMapLoadFailed(true);
+          return;
+        }
 
-      mapRef.current = map;
+        const map = new kakaoMaps.Map(container, {
+          center: new kakaoMaps.LatLng(37.5665, 126.978),
+          level: 8,
+        });
 
-      setTimeout(() => {
-        map.relayout();
-        map.setCenter(new kakaoMaps.LatLng(37.5665, 126.978));
-      }, 300);
+        mapRef.current = map;
+        setKakaoMapLoadFailed(false);
+
+        setTimeout(() => {
+          map.relayout();
+          map.setCenter(new kakaoMaps.LatLng(37.5665, 126.978));
+        }, 300);
+      } catch (error) {
+        console.error("Kakao 지도 초기화 실패:", error);
+        setKakaoMapLoadFailed(true);
+      }
     });
   };
 
@@ -206,23 +225,37 @@ export default function KakaoMap() {
     setIsSearching(true);
     setSearchFailed(false);
 
-    if (!window.kakao?.maps) return;
+    const kakaoMaps = window.kakao?.maps;
 
-    const kakaoMaps = window.kakao.maps;
-    const ps = new kakaoMaps.services.Places();
-
-    ps.keywordSearch(keyword, (data: Place[], status: string) => {
+    if (!kakaoMaps?.services) {
       setIsSearching(false);
+      setPlaces([]);
+      setSearchFailed(true);
+      setKakaoMapLoadFailed(true);
+      return;
+    }
 
-      if (status !== kakaoMaps.services.Status.OK) {
-        setPlaces([]);
-        setSearchFailed(true);
-        return;
-      }
+    try {
+      const ps = new kakaoMaps.services.Places();
 
-      setPlaces(data);
-      setSearchFailed(data.length === 0);
-    });
+      ps.keywordSearch(keyword, (data: Place[], status: string) => {
+        setIsSearching(false);
+
+        if (status !== kakaoMaps.services.Status.OK) {
+          setPlaces([]);
+          setSearchFailed(true);
+          return;
+        }
+
+        setPlaces(data);
+        setSearchFailed(data.length === 0);
+      });
+    } catch (error) {
+      console.error("Kakao 장소 검색 실패:", error);
+      setIsSearching(false);
+      setPlaces([]);
+      setSearchFailed(true);
+    }
   };
 
   /**
@@ -477,11 +510,14 @@ export default function KakaoMap() {
 
   return (
     <>
-      <Script
-        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false&libraries=services,clusterer`}
-        strategy="afterInteractive"
-        onLoad={initializeMap}
-      />
+      {kakaoMapKey && (
+        <Script
+          src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&autoload=false&libraries=services,clusterer`}
+          strategy="afterInteractive"
+          onLoad={initializeMap}
+          onError={() => setKakaoMapLoadFailed(true)}
+        />
+      )}
 
       {/* 회사/집 위치 설정 */}
       <LocationSearchPanel
@@ -561,6 +597,20 @@ export default function KakaoMap() {
           } overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm`}
       >
         <div id="map" className="h-full w-full bg-gray-200" />
+
+        {shouldShowKakaoMapError && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/90 px-6 text-center">
+            <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <p className="text-base font-extrabold text-gray-900">
+                Kakao 지도를 불러오지 못했습니다.
+              </p>
+              <p className="mt-2 text-sm leading-6 text-gray-500">
+                Kakao JavaScript 키와 현재 접속 주소가 Kakao Developers의
+                JavaScript 플랫폼 도메인에 등록되어 있는지 확인해주세요.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* 지도 영역 내 재검색 버튼 */}
 

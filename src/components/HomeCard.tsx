@@ -26,7 +26,7 @@ export default function HomeCard({
 
                     <span className="min-w-0">
                         <span className="block text-xl font-bold text-[#111827]">
-                            집 찾기
+                            집
                         </span>
 
                         <span className="mt-2 block text-xs font-medium leading-6 text-[#4B5563]">

@@ -144,13 +144,17 @@ type BudgetMaxControlProps = {
   title: string;
   subtitle: string;
   value: number;
+  minLimit?: number;
   maxLimit: number;
   step: number;
   unit: string;
+  badgeText: string;
+  inputLabel: string;
+  minLabel: string;
+  maxLabel: string;
   placeholder?: string;
   onChange: (value: number) => void;
-  onConfirm: () => void;
-  formatKoreanMoney: (value: number) => string;
+  onConfirm: (value: number) => void;
 };
 
 type Props = {
@@ -210,23 +214,30 @@ function BudgetMaxControl({
   title,
   subtitle,
   value,
+  minLimit = 0,
   maxLimit,
   step,
   unit,
+  badgeText,
+  inputLabel,
+  minLabel,
+  maxLabel,
   placeholder,
   onChange,
   onConfirm,
-  formatKoreanMoney,
 }: BudgetMaxControlProps) {
-  const percent = Math.min((value / maxLimit) * 100, 100);
-  const isUnlimited = value >= maxLimit;
+  const percent = Math.min(
+    ((value - minLimit) / (maxLimit - minLimit)) * 100,
+    100
+  );
 
   const handleChangeValue = (nextValue: number) => {
     const safeValue = Number.isFinite(nextValue)
-      ? Math.min(Math.max(nextValue, 0), maxLimit)
-      : 0;
+      ? Math.min(Math.max(nextValue, minLimit), maxLimit)
+      : minLimit;
 
     onChange(safeValue);
+    return safeValue;
   };
 
   return (
@@ -238,12 +249,12 @@ function BudgetMaxControl({
         </div>
 
         <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          {isUnlimited ? "무제한" : `${formatKoreanMoney(value)} 이하`}
+          {badgeText}
         </div>
       </div>
 
       <label className="mt-4 block">
-        <span className="text-xs font-semibold text-slate-500">최대 금액</span>
+        <span className="text-xs font-semibold text-slate-500">{inputLabel}</span>
 
         <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 transition focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100">
           <input
@@ -254,7 +265,7 @@ function BudgetMaxControl({
             step={step}
             placeholder={placeholder}
             onChange={(e) => handleChangeValue(Number(e.target.value))}
-            onBlur={onConfirm}
+            onBlur={() => onConfirm(value)}
             className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none"
           />
 
@@ -280,108 +291,15 @@ function BudgetMaxControl({
             step={step}
             value={value}
             onChange={(e) => handleChangeValue(Number(e.target.value))}
-            onMouseUp={onConfirm}
-            onTouchEnd={onConfirm}
+            onMouseUp={(e) => onConfirm(Number(e.currentTarget.value))}
+            onTouchEnd={(e) => onConfirm(Number(e.currentTarget.value))}
             className="range-thumb absolute left-0 top-0 h-7 w-full appearance-none bg-transparent"
           />
         </div>
 
         <div className="mt-1 flex justify-between text-[11px] font-medium text-slate-400">
-          <span>0</span>
-          <span>{formatKoreanMoney(maxLimit)}+</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type RoomSizeControlProps = {
-  value: number;
-  maxLimit: number;
-  step: number;
-  onChange: (value: number) => void;
-  onConfirm: () => void;
-};
-
-function RoomSizeControl({
-  value,
-  maxLimit,
-  step,
-  onChange,
-  onConfirm,
-}: RoomSizeControlProps) {
-  const minLimit = 3;
-  const percent = Math.min(
-    ((value - minLimit) / (maxLimit - minLimit)) * 100,
-    100
-  );
-
-  const handleChangeValue = (nextValue: number) => {
-    const safeValue = Number.isFinite(nextValue)
-      ? Math.min(Math.max(nextValue, minLimit), maxLimit)
-      : minLimit;
-
-    onChange(safeValue);
-  };
-
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-slate-900">방 크기</p>
-          <p className="mt-1 text-xs text-slate-500">최소 평수를 설정해요</p>
-        </div>
-
-        <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          {value}평 이상
-        </div>
-      </div>
-
-      <label className="mt-4 block">
-        <span className="text-xs font-semibold text-slate-500">최소 평수</span>
-
-        <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 transition focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100">
-          <input
-            type="number"
-            value={value}
-            min={minLimit}
-            max={maxLimit}
-            step={step}
-            placeholder="예: 10"
-            onChange={(e) => handleChangeValue(Number(e.target.value))}
-            onBlur={onConfirm}
-            className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none"
-          />
-
-          <span className="ml-1 text-xs font-semibold text-slate-400">평</span>
-        </div>
-      </label>
-
-      <div className="mt-6">
-        <div className="relative h-7">
-          <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200" />
-
-          <div
-            className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-blue-600"
-            style={{ width: `${percent}%` }}
-          />
-
-          <input
-            type="range"
-            min={minLimit}
-            max={maxLimit}
-            step={step}
-            value={value}
-            onChange={(e) => handleChangeValue(Number(e.target.value))}
-            onMouseUp={onConfirm}
-            onTouchEnd={onConfirm}
-            className="range-thumb absolute left-0 top-0 h-7 w-full appearance-none bg-transparent"
-          />
-        </div>
-
-        <div className="mt-1 flex justify-between text-[11px] font-medium text-slate-400">
-          <span>{minLimit}평</span>
-          <span>{maxLimit}평+</span>
+          <span>{minLabel}</span>
+          <span>{maxLabel}</span>
         </div>
       </div>
     </div>
@@ -648,17 +566,7 @@ export default function HomeFilterPanel({
       {!isCollapsed && openFilterMenu && (
         <div className="mt-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.15)]">
           {openFilterMenu === "region" && (
-            <>
-              <div className="hidden">
-                <div>
-                  <p className="text-base font-bold text-slate-900">지역</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    상세 지역을 선택하여 원하는 매물을 더 정확히 찾을 수 있습니다.
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-start gap-2">
                   {REGION_GROUPS.map((group) => {
                     const isActive = activeRegionGroup === group.key;
@@ -728,37 +636,30 @@ export default function HomeFilterPanel({
                     );
                   })}
                 </div>
-              </div>
-            </>
+            </div>
           )}
 
           {openFilterMenu === "roomType" && (
-            <>
-              <p className="hidden">매물 유형</p>
-              <div className="grid grid-cols-4 gap-2">
-                {ROOM_TYPES.map((item) => {
-                  const isSelected = selectedRoomTypes.includes(item);
+            <div className="grid grid-cols-4 gap-2">
+              {ROOM_TYPES.map((item) => {
+                const isSelected = selectedRoomTypes.includes(item);
 
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => toggleOption(item, setSelectedRoomTypes)}
-                      className={pillClass(isSelected)}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleOption(item, setSelectedRoomTypes)}
+                    className={pillClass(isSelected)}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           {openFilterMenu === "budget" && (
-            <>
-              <p className="hidden">가격</p>
-
-              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 {/* 월세 / 전세 / 매매 탭 */}
                 <div className="grid grid-cols-3 border-b border-gray-200 text-sm font-bold">
                   {TRADE_TYPES.map((tradeType) => {
@@ -783,20 +684,6 @@ export default function HomeFilterPanel({
 
                 {/* 탭별 가격 조건 */}
                 <div className="bg-slate-50 p-5">
-                  <div className="hidden">
-                    <p className="text-sm font-bold text-slate-900">
-                      {BUDGET_TAB_TO_TRADE_TYPE[budgetTab]} 가격 조건
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      {budgetTab === "monthly"
-                        ? "월세 매물의 보증금과 월세 최대 금액을 설정해요."
-                        : budgetTab === "lease"
-                          ? "전세 매물의 전세금 최대 금액을 설정해요."
-                          : "매매 매물의 매매가 최대 금액을 설정해요."}
-                    </p>
-                  </div>
-
                   {budgetTab === "monthly" && (
                     <div className="grid gap-5 lg:grid-cols-2">
                       <BudgetMaxControl
@@ -806,15 +693,20 @@ export default function HomeFilterPanel({
                         maxLimit={20000}
                         step={500}
                         unit="만원"
+                        badgeText={
+                          monthlyDeposit >= 20000
+                            ? "무제한"
+                            : `${formatKoreanMoney(monthlyDeposit)} 이하`
+                        }
+                        inputLabel="최대 금액"
+                        minLabel="0"
+                        maxLabel={`${formatKoreanMoney(20000)}+`}
                         placeholder="예: 7000"
-                        formatKoreanMoney={formatKoreanMoney}
                         onChange={(value) => {
                           markBudgetTouched("월세");
                           setMonthlyDeposit(value);
                         }}
-                        onConfirm={() =>
-                          setConfirmedMonthlyDeposit(monthlyDeposit)
-                        }
+                        onConfirm={setConfirmedMonthlyDeposit}
                       />
 
                       <BudgetMaxControl
@@ -824,13 +716,18 @@ export default function HomeFilterPanel({
                         maxLimit={150}
                         step={5}
                         unit="만원"
+                        badgeText={
+                          monthlyRent >= 150 ? "무제한" : `${monthlyRent}만원 이하`
+                        }
+                        inputLabel="최대 금액"
+                        minLabel="0"
+                        maxLabel={`${formatKoreanMoney(150)}+`}
                         placeholder="예: 50"
-                        formatKoreanMoney={formatKoreanMoney}
                         onChange={(value) => {
                           markBudgetTouched("월세");
                           setMonthlyRent(value);
                         }}
-                        onConfirm={() => setConfirmedMonthlyRent(monthlyRent)}
+                        onConfirm={setConfirmedMonthlyRent}
                       />
                     </div>
                   )}
@@ -843,15 +740,20 @@ export default function HomeFilterPanel({
                       maxLimit={20000}
                       step={500}
                       unit="만원"
+                      badgeText={
+                        leaseDeposit >= 20000
+                          ? "무제한"
+                          : `${formatKoreanMoney(leaseDeposit)} 이하`
+                      }
+                      inputLabel="최대 금액"
+                      minLabel="0"
+                      maxLabel={`${formatKoreanMoney(20000)}+`}
                       placeholder="예: 20000"
-                      formatKoreanMoney={formatKoreanMoney}
                       onChange={(value) => {
                         markBudgetTouched("전세");
                         setLeaseDeposit(value);
                       }}
-                      onConfirm={() =>
-                        setConfirmedLeaseDeposit(leaseDeposit)
-                      }
+                      onConfirm={setConfirmedLeaseDeposit}
                     />
                   )}
 
@@ -863,85 +765,88 @@ export default function HomeFilterPanel({
                       maxLimit={500000}
                       step={5000}
                       unit="만원"
+                      badgeText={
+                        salePrice >= 500000
+                          ? "무제한"
+                          : `${formatKoreanMoney(salePrice)} 이하`
+                      }
+                      inputLabel="최대 금액"
+                      minLabel="0"
+                      maxLabel={`${formatKoreanMoney(500000)}+`}
                       placeholder="예: 50000"
-                      formatKoreanMoney={formatKoreanMoney}
                       onChange={(value) => {
                         markBudgetTouched("매매");
                         setSalePrice(value);
                       }}
-                      onConfirm={() => setConfirmedSalePrice(salePrice)}
+                      onConfirm={setConfirmedSalePrice}
                     />
                   )}
                 </div>
               </div>
-            </>
           )}
 
           {openFilterMenu === "roomSize" && (
-            <>
-              <p className="hidden">방 크기</p>
-
-              <RoomSizeControl
-                value={roomSize}
-                maxLimit={30}
-                step={1}
-                onChange={(value) => {
-                  setRoomSize(value);
-                  setIsRoomSizeTouched(true);
-                }}
-                onConfirm={() => setConfirmedRoomSize(roomSize)}
-              />
-            </>
+            <BudgetMaxControl
+              title="방 크기"
+              subtitle="최소 평수를 설정해요"
+              value={roomSize}
+              minLimit={3}
+              maxLimit={30}
+              step={1}
+              unit="평"
+              badgeText={`${roomSize}평 이상`}
+              inputLabel="최소 평수"
+              minLabel="3평"
+              maxLabel="30평+"
+              placeholder="예: 10"
+              onChange={(value) => {
+                setRoomSize(value);
+                setIsRoomSizeTouched(true);
+              }}
+              onConfirm={setConfirmedRoomSize}
+            />
           )}
 
           {openFilterMenu === "rooms" && (
-            <>
-              <p className="hidden">방 개수</p>
+            <div className="grid gap-2 grid-cols-4">
+              {ROOM_COUNTS.map((item) => {
+                const isSelected = selectedRooms.includes(item);
 
-              <div className="grid gap-2 grid-cols-4">
-                {ROOM_COUNTS.map((item) => {
-                  const isSelected = selectedRooms.includes(item);
-
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => toggleOption(item, setSelectedRooms)}
-                      className={pillClass(isSelected)}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => toggleOption(item, setSelectedRooms)}
+                    className={pillClass(isSelected)}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           {openFilterMenu === "approvalDate" && (
-            <>
-              <p className="hidden">사용승인일</p>
+            <div className="grid gap-2 grid-cols-4">
+              {APPROVAL_DATES.map((item) => {
+                const isSelected = selectedApprovalDate === item;
 
-              <div className="grid gap-2 grid-cols-4">
-                {APPROVAL_DATES.map((item) => {
-                  const isSelected = selectedApprovalDate === item;
-
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() =>
-                        setSelectedApprovalDate((prev) =>
-                          prev === item ? null : item
-                        )
-                      }
-                      className={pillClass(isSelected)}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() =>
+                      setSelectedApprovalDate((prev) =>
+                        prev === item ? null : item
+                      )
+                    }
+                    className={pillClass(isSelected)}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
