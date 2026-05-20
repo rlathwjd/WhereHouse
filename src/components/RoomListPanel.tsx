@@ -560,7 +560,7 @@ export default function RoomListPanel({
                             })}
 
                             {isFavoriteCompareMode && compareReport && (
-                                <div className="mt-5 whitespace-pre-line rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm leading-7 text-gray-700">
+                                <div className="mt-3 whitespace-pre-line rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm leading-7 text-gray-700">
                                     <p className="mb-2 text-base font-extrabold text-gray-950">
                                         관심 매물 비교 분석 리포트
                                     </p>

@@ -30,16 +30,22 @@ export default function CompanySearchPanel({
     onClose,
 }: Props) {
     return (
-        <div className="mt-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+        <div className="rounded-2xl border border-[#D7E6FF] bg-white px-5 py-4 shadow-sm">
             <div className="mb-3 flex items-start justify-between gap-4">
-                <div>
-                    <p className="text-base font-extrabold text-gray-900">
-                        회사 위치 검색
-                    </p>
+                <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]">
+                        <MapPin size={20} strokeWidth={2.2} />
+                    </span>
 
-                    <p className="mt-1 text-xs font-medium text-gray-500">
-                        회사명이나 주소를 검색해 출퇴근 기준 위치를 설정하세요.
-                    </p>
+                    <div>
+                        <p className="text-base font-extrabold text-gray-900">
+                            회사 위치 검색
+                        </p>
+
+                        <p className="mt-1 text-xs font-medium text-gray-500">
+                            회사명이나 주소를 검색해 출퇴근 기준 위치를 설정하세요.
+                        </p>
+                    </div>
                 </div>
 
                 <button
@@ -63,13 +69,13 @@ export default function CompanySearchPanel({
                             if (e.key === "Enter") searchPlace();
                         }}
                         placeholder="회사명 또는 주소를 검색하세요"
-                        className="h-12 w-full rounded-xl border border-gray-300 bg-white pl-4 pr-12 text-base font-semibold text-gray-800 outline-none transition placeholder:text-sm placeholder:font-medium placeholder:text-gray-400 focus:border-[#F4C430] focus:ring-4 focus:ring-[#FFF3BF]"
+                        className="h-12 w-full rounded-xl border border-[#B8D7FF] bg-[#F8FBFF] pl-4 pr-12 text-base font-semibold text-gray-800 outline-none transition placeholder:text-sm placeholder:font-medium placeholder:text-gray-400 focus:border-[#2563EB] focus:ring-4 focus:ring-[#DBEAFE]"
                     />
 
                     <button
                         type="button"
                         onClick={searchPlace}
-                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
                         aria-label="회사 위치 검색"
                     >
                         <Search size={19} strokeWidth={2.4} />
@@ -78,14 +84,14 @@ export default function CompanySearchPanel({
             </div>
 
             {showCompanySearch && isSearching && (
-                <p className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500">
+                <p className="mt-4 rounded-xl bg-[#EFF6FF] px-4 py-3 text-sm font-medium text-[#2563EB]">
                     검색 중입니다.
                 </p>
             )}
 
             {showCompanySearch && hasSearched && !isSearching && (
-                <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                    <p className="border-b border-gray-100 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-700">
+                <div className="mt-4 overflow-hidden rounded-xl border border-[#D7E6FF] bg-white">
+                    <p className="border-b border-[#D7E6FF] bg-[#EFF6FF] px-4 py-3 text-sm font-bold text-[#2563EB]">
                         검색 결과
                     </p>
 

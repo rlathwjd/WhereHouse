@@ -12,16 +12,24 @@ import type {
   FilterMenu,
   HomeMode,
 } from "@/types/map";
+
+import HomeIntroPanel from "@/components/HomeIntroPanel";
+import LocationSearchPanel from "@/components/LocationSearchPanel";
+import MapErrorPanel from "@/components/MapErrorPanel";
 import RoomListPanel from "@/components/RoomListPanel";
+
+import { useFavoriteRooms } from "@/hooks/useFavoriteRooms";
 import { useKakaoRoomCluster } from "@/hooks/useKakaoRoomCluster";
 import { useRoomSummary } from "@/hooks/useRoomSummary";
 import { useRoomsCache } from "@/hooks/useRoomsCache";
-import { useFavoriteRooms } from "@/hooks/useFavoriteRooms";
-import LocationSearchPanel from "@/components/LocationSearchPanel";
 
-export default function KakaoMap() {
+type KakaoMapProps = {
+  titleClassName?: string;
+};
+
+export default function KakaoMap({ titleClassName = "" }: KakaoMapProps) {
   /**
-   * 지도와 외부 DOM 참조
+   * 지도 관련 DOM 참조
    */
   const mapRef = useRef<KakaoMapInstance | null>(null);
   const markerRef = useRef<KakaoMapEntity | null>(null);
@@ -52,6 +60,7 @@ export default function KakaoMap() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchFailed, setSearchFailed] = useState(false);
+  const [isKakaoMapReady, setIsKakaoMapReady] = useState(false);
   const [kakaoMapLoadFailed, setKakaoMapLoadFailed] = useState(false);
 
   /**
@@ -61,7 +70,7 @@ export default function KakaoMap() {
   const [confirmedCompany, setConfirmedCompany] = useState<Place | null>(null);
 
   /**
-   * 집 찾기 패널 상태
+   * 위치/집 찾기 패널 상태
    */
   const [showCompanySearch, setShowCompanySearch] = useState(false);
   const [, setIsEditingCompany] = useState(false);
@@ -107,7 +116,7 @@ export default function KakaoMap() {
   const [isRoomSizeTouched, setIsRoomSizeTouched] = useState(false);
 
   /**
-   * 매물 목록과 클러스터 상태
+   * 매물 목록 및 클러스터 상태
    */
   const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
   const [selectedClusterRooms, setSelectedClusterRooms] = useState<Room[]>([]);
@@ -122,7 +131,7 @@ export default function KakaoMap() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   /**
-   * 매물 요약
+   * 매물 요약 상태
    */
   const {
     roomSummaries,
@@ -147,11 +156,12 @@ export default function KakaoMap() {
   });
 
   /**
-   * 화면 표시용 값
+   * 화면 표시 조건
    */
   const isRoomMap = homeMode === "condition" || homeMode === "favoriteCompare";
   const kakaoMapKey = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
   const shouldShowKakaoMapError = kakaoMapLoadFailed || !kakaoMapKey;
+  const shouldShowMap = Boolean(confirmedCompany) || isRoomMap;
 
   const visibleRooms =
     selectedClusterRooms.length > 0 ? selectedClusterRooms : filteredRooms;
@@ -172,45 +182,111 @@ export default function KakaoMap() {
   const [isSearchInMapArea, setIsSearchInMapArea] = useState(true);
 
   /**
-   * 지도 초기화
+   * Kakao SDK 로드
    */
-  const initializeMap = () => {
+  const loadKakaoMapSdk = () => {
     if (!window.kakao?.maps) {
       setKakaoMapLoadFailed(true);
       return;
     }
 
     window.kakao.maps.load(() => {
-      try {
-        const container = document.getElementById("map");
-        if (!container) {
-          setKakaoMapLoadFailed(true);
-          return;
-        }
+      setIsKakaoMapReady(true);
+      setKakaoMapLoadFailed(false);
+    });
+  };
 
-        const kakaoMaps = window.kakao?.maps;
-        if (!kakaoMaps) {
-          setKakaoMapLoadFailed(true);
-          return;
-        }
+  /**
+   * 회사 위치 마커 표시
+   */
+  const renderCompanyMarker = (
+    map: KakaoMapInstance,
+    kakaoMaps: NonNullable<NonNullable<typeof window.kakao>["maps"]>,
+    place: Place
+  ) => {
+    const position = new kakaoMaps.LatLng(place.y, place.x);
 
+    map.relayout();
+    map.setCenter(position);
+    map.setLevel(4);
+
+    if (markerRef.current) markerRef.current.setMap(null);
+    if (infoWindowRef.current) infoWindowRef.current.close();
+
+    const marker = new kakaoMaps.Marker({
+      position,
+      map,
+    });
+
+    const infoWindow = new kakaoMaps.InfoWindow({
+      content: `
+        <div style="
+          padding: 10px 14px;
+          font-size: 13px;
+          white-space: nowrap;
+          background: white;
+        ">
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          ">
+            <span style="font-weight: 700;">
+              ${place.place_name}
+            </span>
+            <span style="
+              color: #9ca3af;
+              font-size: 12px;
+            ">
+              ${place.road_address_name || place.address_name}
+            </span>
+          </div>
+        </div>
+      `,
+    });
+
+    infoWindow.open(map, marker);
+
+    markerRef.current = marker;
+    infoWindowRef.current = infoWindow;
+  };
+
+  /**
+   * 지도 초기화
+   */
+  const initializeMap = (place?: Place) => {
+    try {
+      const container = document.getElementById("map");
+      if (!container) return;
+
+      const kakaoMaps = window.kakao?.maps;
+      if (!kakaoMaps) {
+        setKakaoMapLoadFailed(true);
+        return;
+      }
+
+      if (!mapRef.current) {
         const map = new kakaoMaps.Map(container, {
-          center: new kakaoMaps.LatLng(37.5665, 126.978),
-          level: 8,
+          center: place
+            ? new kakaoMaps.LatLng(place.y, place.x)
+            : new kakaoMaps.LatLng(37.5665, 126.978),
+          level: place ? 4 : 8,
         });
 
         mapRef.current = map;
-        setKakaoMapLoadFailed(false);
-
-        setTimeout(() => {
-          map.relayout();
-          map.setCenter(new kakaoMaps.LatLng(37.5665, 126.978));
-        }, 300);
-      } catch (error) {
-        console.error("Kakao 지도 초기화 실패:", error);
-        setKakaoMapLoadFailed(true);
       }
-    });
+
+      mapRef.current.relayout();
+
+      if (place) {
+        renderCompanyMarker(mapRef.current, kakaoMaps, place);
+      }
+
+      setKakaoMapLoadFailed(false);
+    } catch (error) {
+      console.error("Kakao 지도 초기화 실패:", error);
+      setKakaoMapLoadFailed(true);
+    }
   };
 
   /**
@@ -250,8 +326,7 @@ export default function KakaoMap() {
         setPlaces(data);
         setSearchFailed(data.length === 0);
       });
-    } catch (error) {
-      console.error("Kakao 장소 검색 실패:", error);
+    } catch {
       setIsSearching(false);
       setPlaces([]);
       setSearchFailed(true);
@@ -264,62 +339,20 @@ export default function KakaoMap() {
   const confirmCompany = (place: Place) => {
     setSelectedCompany(place);
     setConfirmedCompany(place);
-
-    if (!mapRef.current || !window.kakao?.maps) return;
-
     setHasSearched(true);
-
-    const kakaoMaps = window.kakao.maps;
-    const position = new kakaoMaps.LatLng(place.y, place.x);
-
-    if (markerRef.current) markerRef.current.setMap(null);
-    if (infoWindowRef.current) infoWindowRef.current.close();
-
-    const marker = new kakaoMaps.Marker({
-      position,
-      map: mapRef.current,
-    });
-
-    const infoWindow = new kakaoMaps.InfoWindow({
-      content: `
-        <div style="
-          padding: 10px 14px;
-          font-size: 13px;
-          white-space: nowrap;
-          background: white;
-        ">
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          ">
-            <span style="font-weight: 700;">
-              ${place.place_name}
-            </span>
-            <span style="
-              color: #9ca3af;
-              font-size: 12px;
-            ">
-              ${place.road_address_name || place.address_name}
-            </span>
-          </div>
-        </div>
-      `,
-    });
-
-    infoWindow.open(mapRef.current, marker);
-
-    markerRef.current = marker;
-    infoWindowRef.current = infoWindow;
 
     setKeyword("");
     setPlaces([]);
     setShowCompanySearch(false);
     setIsEditingCompany(false);
+
+    if (mapRef.current && window.kakao?.maps) {
+      renderCompanyMarker(mapRef.current, window.kakao.maps, place);
+    }
   };
 
   /**
-   * 조건 필터 메뉴
+   * 조건 필터 메뉴 토글
    */
   const toggleFilter = (menu: FilterMenu) => {
     setOpenFilterMenu((prev) => (prev === menu ? null : menu));
@@ -396,7 +429,8 @@ export default function KakaoMap() {
       isCancelled = true;
       clearTimeout(timer);
     };
-    // showRoomClusters is intentionally omitted to avoid recreating clusters on every render.
+
+    // showRoomClusters는 렌더링마다 클러스터가 재생성되는 것을 막기 위해 의존성에서 제외합니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     homeMode,
@@ -436,6 +470,43 @@ export default function KakaoMap() {
   ]);
 
   /**
+   * 지도 표시 조건이 충족되면 지도 초기화
+   */
+  useEffect(() => {
+    if (!shouldShowMap || !isKakaoMapReady) return;
+
+    const timer = setTimeout(() => {
+      initializeMap(confirmedCompany ?? undefined);
+    }, 0);
+
+    return () => clearTimeout(timer);
+
+    // initializeMap은 지도 ref와 마커 헬퍼를 함께 사용하므로 별도 의존성으로 분리하지 않습니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirmedCompany, isKakaoMapReady, shouldShowMap]);
+
+  /**
+   * 상단 패널 높이가 바뀌면 지도 영역 크기 재계산
+   */
+  useEffect(() => {
+    if (!shouldShowMap) return;
+
+    const timer = setTimeout(() => {
+      mapRef.current?.relayout();
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [
+    isHomeSearchPanelOpen,
+    showCompanySearch,
+    showHomeOption,
+    homeMode,
+    openFilterMenu,
+    confirmedCompany,
+    shouldShowMap,
+  ]);
+
+  /**
    * 관심 매물 제거
    */
   const handleRemoveFavoriteRoom = (room: Room) => {
@@ -449,7 +520,7 @@ export default function KakaoMap() {
   };
 
   /**
-   * 관심 매물 비교 선택
+   * 관심 매물 비교 선택 토글
    */
   const toggleCompareRoom = (room: Room) => {
     const roomId = getRoomId(room);
@@ -509,111 +580,115 @@ export default function KakaoMap() {
   };
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       {kakaoMapKey && (
         <Script
           src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapKey}&autoload=false&libraries=services,clusterer`}
           strategy="afterInteractive"
-          onLoad={initializeMap}
+          onLoad={loadKakaoMapSdk}
           onError={() => setKakaoMapLoadFailed(true)}
         />
       )}
 
-      {/* 회사/집 위치 설정 */}
-      <LocationSearchPanel
-        isHomeSearchPanelOpen={isHomeSearchPanelOpen}
-        setIsHomeSearchPanelOpen={setIsHomeSearchPanelOpen}
-        selectedCompany={selectedCompany}
-        showCompanySearch={showCompanySearch}
-        setShowCompanySearch={setShowCompanySearch}
-        keyword={keyword}
-        setKeyword={setKeyword}
-        places={places}
-        setPlaces={setPlaces}
-        hasSearched={hasSearched}
-        setHasSearched={setHasSearched}
-        isSearching={isSearching}
-        searchFailed={searchFailed}
-        searchPlace={searchPlace}
-        showLocationOption={showLocationOption}
-        setShowLocationOption={setShowLocationOption}
-        showHomeOption={showHomeOption}
-        setShowHomeOption={setShowHomeOption}
-        showHomeFilters={showHomeFilters}
-        setShowHomeFilters={setShowHomeFilters}
-        homeMode={homeMode}
-        setHomeMode={setHomeMode}
-        openFilterMenu={openFilterMenu}
-        toggleFilter={toggleFilter}
-        setOpenFilterMenu={setOpenFilterMenu}
-        setShowRoomList={setShowRoomList}
-        setIsEditingCompany={setIsEditingCompany}
-        inputRef={inputRef}
-        clearRoomClusters={clearRoomClusters}
-        confirmCompany={confirmCompany}
-        previousCompanyRef={previousCompanyRef}
-        resetHomeFilters={resetHomeFilters}
-        selectedRegions={selectedRegions}
-        setSelectedRegions={setSelectedRegions}
-        selectedRoomTypes={selectedRoomTypes}
-        setSelectedRoomTypes={setSelectedRoomTypes}
-        selectedTradeTypes={selectedTradeTypes}
-        setSelectedTradeTypes={setSelectedTradeTypes}
-        selectedApprovalDate={selectedApprovalDate}
-        setSelectedApprovalDate={setSelectedApprovalDate}
-        selectedRooms={selectedRooms}
-        setSelectedRooms={setSelectedRooms}
-        monthlyDeposit={monthlyDeposit}
-        setMonthlyDeposit={setMonthlyDeposit}
-        confirmedMonthlyDeposit={confirmedMonthlyDeposit}
-        setConfirmedMonthlyDeposit={setConfirmedMonthlyDeposit}
-        monthlyRent={monthlyRent}
-        setMonthlyRent={setMonthlyRent}
-        confirmedMonthlyRent={confirmedMonthlyRent}
-        setConfirmedMonthlyRent={setConfirmedMonthlyRent}
-        leaseDeposit={leaseDeposit}
-        setLeaseDeposit={setLeaseDeposit}
-        confirmedLeaseDeposit={confirmedLeaseDeposit}
-        setConfirmedLeaseDeposit={setConfirmedLeaseDeposit}
-        salePrice={salePrice}
-        setSalePrice={setSalePrice}
-        confirmedSalePrice={confirmedSalePrice}
-        setConfirmedSalePrice={setConfirmedSalePrice}
-        roomSize={roomSize}
-        setRoomSize={setRoomSize}
-        confirmedRoomSize={confirmedRoomSize}
-        setConfirmedRoomSize={setConfirmedRoomSize}
-        isBudgetTouched={isBudgetTouched}
-        setIsBudgetTouched={setIsBudgetTouched}
-        isRoomSizeTouched={isRoomSizeTouched}
-        setIsRoomSizeTouched={setIsRoomSizeTouched}
-        compareReport={compareReport}
-      />
+      <div className="space-y-6">
+        <div className="w-full pb-4 lg:pb-0 lg:pt-1">
+          <h1
+            onClick={() => window.location.reload()}
+            className={`${titleClassName} cursor-pointer text-4xl font-bold tracking-tight`}
+          >
+            WhereHouse
+          </h1>
 
+          <p className="mt-2 ml-0.5 text-base font-semibold text-gray-600">
+            사회초년생을 위한 생활권 기반 자취방 탐색 서비스
+          </p>
+        </div>
 
-      {/* 지도 */}
-      <div
-        className={`relative mt-5 ${isHomeSearchPanelOpen ? "h-[560px]" : "h-[620px]"
-          } overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm`}
-      >
-        <div id="map" className="h-full w-full bg-gray-200" />
+        <div className="min-w-0 flex-1">
+          {/* 회사/집 위치 설정 */}
+          <LocationSearchPanel
+            isHomeSearchPanelOpen={isHomeSearchPanelOpen}
+            setIsHomeSearchPanelOpen={setIsHomeSearchPanelOpen}
+            selectedCompany={selectedCompany}
+            showCompanySearch={showCompanySearch}
+            setShowCompanySearch={setShowCompanySearch}
+            keyword={keyword}
+            setKeyword={setKeyword}
+            places={places}
+            setPlaces={setPlaces}
+            hasSearched={hasSearched}
+            setHasSearched={setHasSearched}
+            isSearching={isSearching}
+            searchFailed={searchFailed}
+            searchPlace={searchPlace}
+            showLocationOption={showLocationOption}
+            setShowLocationOption={setShowLocationOption}
+            showHomeOption={showHomeOption}
+            setShowHomeOption={setShowHomeOption}
+            showHomeFilters={showHomeFilters}
+            setShowHomeFilters={setShowHomeFilters}
+            homeMode={homeMode}
+            setHomeMode={setHomeMode}
+            openFilterMenu={openFilterMenu}
+            toggleFilter={toggleFilter}
+            setOpenFilterMenu={setOpenFilterMenu}
+            setShowRoomList={setShowRoomList}
+            setIsEditingCompany={setIsEditingCompany}
+            inputRef={inputRef}
+            clearRoomClusters={clearRoomClusters}
+            confirmCompany={confirmCompany}
+            previousCompanyRef={previousCompanyRef}
+            resetHomeFilters={resetHomeFilters}
+            selectedRegions={selectedRegions}
+            setSelectedRegions={setSelectedRegions}
+            selectedRoomTypes={selectedRoomTypes}
+            setSelectedRoomTypes={setSelectedRoomTypes}
+            selectedTradeTypes={selectedTradeTypes}
+            setSelectedTradeTypes={setSelectedTradeTypes}
+            selectedApprovalDate={selectedApprovalDate}
+            setSelectedApprovalDate={setSelectedApprovalDate}
+            selectedRooms={selectedRooms}
+            setSelectedRooms={setSelectedRooms}
+            monthlyDeposit={monthlyDeposit}
+            setMonthlyDeposit={setMonthlyDeposit}
+            confirmedMonthlyDeposit={confirmedMonthlyDeposit}
+            setConfirmedMonthlyDeposit={setConfirmedMonthlyDeposit}
+            monthlyRent={monthlyRent}
+            setMonthlyRent={setMonthlyRent}
+            confirmedMonthlyRent={confirmedMonthlyRent}
+            setConfirmedMonthlyRent={setConfirmedMonthlyRent}
+            leaseDeposit={leaseDeposit}
+            setLeaseDeposit={setLeaseDeposit}
+            confirmedLeaseDeposit={confirmedLeaseDeposit}
+            setConfirmedLeaseDeposit={setConfirmedLeaseDeposit}
+            salePrice={salePrice}
+            setSalePrice={setSalePrice}
+            confirmedSalePrice={confirmedSalePrice}
+            setConfirmedSalePrice={setConfirmedSalePrice}
+            roomSize={roomSize}
+            setRoomSize={setRoomSize}
+            confirmedRoomSize={confirmedRoomSize}
+            setConfirmedRoomSize={setConfirmedRoomSize}
+            isBudgetTouched={isBudgetTouched}
+            setIsBudgetTouched={setIsBudgetTouched}
+            isRoomSizeTouched={isRoomSizeTouched}
+            setIsRoomSizeTouched={setIsRoomSizeTouched}
+            compareReport={compareReport}
+          />
+        </div>
+      </div>
 
-        {shouldShowKakaoMapError && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/90 px-6 text-center">
-            <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-base font-extrabold text-gray-900">
-                Kakao 지도를 불러오지 못했습니다.
-              </p>
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                Kakao JavaScript 키와 현재 접속 주소가 Kakao Developers의
-                JavaScript 플랫폼 도메인에 등록되어 있는지 확인해주세요.
-              </p>
-            </div>
-          </div>
+      {/* 지도/홈 화면 영역 */}
+      <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm">
+        {shouldShowMap ? (
+          <div id="map" className="h-full w-full bg-gray-200" />
+        ) : (
+          <HomeIntroPanel />
         )}
 
-        {/* 지도 영역 내 재검색 버튼 */}
+        {shouldShowMap && shouldShowKakaoMapError && <MapErrorPanel />}
 
+        {/* 지도 영역 내 재검색 버튼 */}
         {isRoomMap && (
           <button
             type="button"
@@ -653,6 +728,7 @@ export default function KakaoMap() {
               compareReport={compareReport}
             />
 
+            {/* 매물 정보 패널 접기 버튼 */}
             <button
               type="button"
               onClick={() => {
@@ -666,7 +742,7 @@ export default function KakaoMap() {
           </div>
         )}
 
-        {/* 매물 정보 펼치기 버튼 */}
+        {/* 매물 정보 패널 열기 버튼 */}
         {isRoomMap && !showRoomList && (
           <button
             type="button"
@@ -674,12 +750,12 @@ export default function KakaoMap() {
               setShowRoomList(true);
             }}
             className="absolute left-0 top-1/2 z-10 flex h-12 w-7 -translate-y-1/2 items-center justify-center rounded-r-full border border-l-0 border-gray-200 bg-white text-xs font-bold text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-900"
-            aria-label="매물 정보 펼치기"
+            aria-label="매물 정보 열기"
           >
             {">"}
           </button>
         )}
       </div>
-    </>
+    </div>
   );
 }

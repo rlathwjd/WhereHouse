@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { Home, X } from "lucide-react";
 
 import type { HomeMode } from "@/types/map";
 
@@ -22,17 +22,23 @@ export default function HomeSearchModePanel({
         <div
             ref={panelRef}
             tabIndex={-1}
-            className="mt-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm outline-none transition focus-within:border-[#F4C430] focus-within:ring-4 focus-within:ring-[#FFF3BF]"
+            className="rounded-2xl border border-[#FDE8A8] bg-white px-5 py-4 shadow-sm outline-none transition focus-within:border-[#F59E0B] focus-within:ring-4 focus-within:ring-[#FEF3C7]"
         >
             <div className="mb-3 flex items-start justify-between gap-4">
-                <div>
-                    <p className="text-base font-extrabold text-gray-900">
-                        집 탐색 조건 선택
-                    </p>
+                <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#F59E0B] bg-[#FFFBEB] text-[#F59E0B]">
+                        <Home size={20} strokeWidth={2.2} />
+                    </span>
 
-                    <p className="mt-1 text-xs font-medium text-gray-500">
-                        어떤 방식으로 집을 찾아볼까요?
-                    </p>
+                    <div>
+                        <p className="text-base font-extrabold text-gray-900">
+                            집 탐색 조건 선택
+                        </p>
+
+                        <p className="mt-1 text-xs font-medium text-gray-500">
+                            원하는 조건으로 매물을 찾아보세요.
+                        </p>
+                    </div>
                 </div>
 
                 <button

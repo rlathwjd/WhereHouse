@@ -1,19 +1,23 @@
 "use client";
 
-import { Dispatch, RefObject, SetStateAction, useState } from "react";
+import {
+    Dispatch,
+    MutableRefObject,
+    RefObject,
+    SetStateAction,
+    useState,
+} from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-import type { Place, FilterMenu, HomeMode } from "@/types/map";
+import type { FilterMenu, HomeMode, Place } from "@/types/map";
 
 import { HOME_MODE_TEXT } from "@/constants/homeMode";
 import CompanyCard from "./CompanyCard";
 import CompanySearchPanel from "./CompanySearchPanel";
+import CommuteRouteCard from "./CommuteRouteCard";
 import HomeCard from "./HomeCard";
-import HomeSearchModePanel from "./HomeSearchModePanel";
 import HomeFilterPanel from "./HomeFilterPanel";
-
-
-
+import HomeSearchModePanel from "./HomeSearchModePanel";
 
 type LocationSearchPanelProps = {
     isHomeSearchPanelOpen: boolean;
@@ -26,16 +30,12 @@ type LocationSearchPanelProps = {
 
     keyword: string;
     setKeyword: Dispatch<SetStateAction<string>>;
-
     places: Place[];
     setPlaces: Dispatch<SetStateAction<Place[]>>;
-
     hasSearched: boolean;
     setHasSearched: Dispatch<SetStateAction<boolean>>;
-
     isSearching: boolean;
     searchFailed: boolean;
-
     searchPlace: () => void;
 
     showLocationOption: boolean;
@@ -58,10 +58,10 @@ type LocationSearchPanelProps = {
     setIsEditingCompany: Dispatch<SetStateAction<boolean>>;
 
     inputRef: RefObject<HTMLInputElement | null>;
-
     clearRoomClusters: () => void;
     confirmCompany: (place: Place) => void;
-    previousCompanyRef: RefObject<Place | null>;
+    previousCompanyRef: MutableRefObject<Place | null>;
+
     resetHomeFilters: () => void;
 
     selectedRegions: string[];
@@ -115,8 +115,6 @@ type LocationSearchPanelProps = {
 
 export default function LocationSearchPanel({
     isHomeSearchPanelOpen,
-    setIsHomeSearchPanelOpen,
-
     selectedCompany,
 
     showCompanySearch,
@@ -124,16 +122,12 @@ export default function LocationSearchPanel({
 
     keyword,
     setKeyword,
-
     places,
     setPlaces,
-
     hasSearched,
     setHasSearched,
-
     isSearching,
     searchFailed,
-
     searchPlace,
 
     showLocationOption,
@@ -155,10 +149,10 @@ export default function LocationSearchPanel({
     setIsEditingCompany,
 
     inputRef,
-
     clearRoomClusters,
     confirmCompany,
     previousCompanyRef,
+
     resetHomeFilters,
 
     selectedRegions,
@@ -211,25 +205,91 @@ export default function LocationSearchPanel({
 }: LocationSearchPanelProps) {
     const [isHomeModeDetailOpen, setIsHomeModeDetailOpen] = useState(true);
 
-    const handleClickHome = () => {
+    const resetCompanySearchState = () => {
+        setPlaces([]);
+        setKeyword("");
+        setHasSearched(false);
+    };
+
+    const closeCompanySearch = () => {
+        setShowCompanySearch(false);
+        setIsEditingCompany(false);
+        resetCompanySearchState();
+
+        if (selectedCompany) {
+            confirmCompany(selectedCompany);
+        }
+    };
+
+    const openCompanySearch = () => {
+        if (selectedCompany) {
+            previousCompanyRef.current = selectedCompany;
+        }
+
+        clearRoomClusters();
+
+        // 집 관련 패널 닫기
+        setShowHomeOption(false);
+        setShowHomeFilters(false);
+        setHomeMode(null);
+        setShowRoomList(false);
+        setOpenFilterMenu(null);
+
+        // 회사 검색 패널 열기
+        setShowLocationOption(true);
+        setShowCompanySearch(true);
+        setIsEditingCompany(true);
+        resetCompanySearchState();
+
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 0);
+    };
+
+    const handleClickCompany = () => {
+        if (showCompanySearch) {
+            closeCompanySearch();
+            return;
+        }
+
+        openCompanySearch();
+    };
+
+    const closeHomeOption = () => {
+        setShowHomeOption(false);
+    };
+
+    const openHomeOption = () => {
         clearRoomClusters();
         resetHomeFilters();
 
+        // 회사 검색 패널 닫기
+        setShowCompanySearch(false);
+        setIsEditingCompany(false);
+        resetCompanySearchState();
+
+        // 집 탐색 패널 열기
         setHomeMode(null);
-        setIsHomeModeDetailOpen(true);
-
         setShowLocationOption(true);
-        setShowHomeOption((prev) => !prev);
-
+        setShowHomeOption(true);
         setShowHomeFilters(false);
         setShowRoomList(false);
         setOpenFilterMenu(null);
+        setIsHomeModeDetailOpen(true);
     };
 
-    const handleSelectMode = (mode: Exclude<HomeMode, null>) => {
+    const handleClickHome = () => {
+        if (showHomeOption) {
+            closeHomeOption();
+            return;
+        }
+
+        openHomeOption();
+    };
+
+    const handleSelectHomeMode = (mode: Exclude<HomeMode, null>) => {
         setHomeMode(mode);
         setIsHomeModeDetailOpen(true);
-
         setShowLocationOption(true);
         setShowHomeOption(false);
         setOpenFilterMenu(null);
@@ -246,50 +306,16 @@ export default function LocationSearchPanel({
             return;
         }
 
-        if (mode === "localReview") {
-            setShowHomeFilters(false);
-            setShowRoomList(false);
-        }
-    };
-
-    const handleOpenCompanySearch = () => {
-        const next = !showCompanySearch;
-
-        setShowCompanySearch(next);
-        setShowLocationOption(true);
-
-        if (!next) {
-            setPlaces([]);
-            setKeyword("");
-            setHasSearched(false);
-            setIsEditingCompany(false);
-            return;
-        }
-
-        setPlaces([]);
-        setKeyword("");
-        setHasSearched(false);
-        setIsEditingCompany(true);
-
-        // 집 찾기 모드가 아직 시작되지 않은 경우에만 집 선택 옵션을 닫아도 됨
-        if (!homeMode) {
-            setShowHomeOption(false);
-        }
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 0);
+        setShowHomeFilters(false);
+        setShowRoomList(false);
     };
 
     const handleCloseCompanySearch = () => {
-        setShowCompanySearch(false);
-        setPlaces([]);
-        setKeyword("");
-        setHasSearched(false);
-        setIsEditingCompany(false);
+        closeCompanySearch();
     };
 
     const handleCloseHomeOption = () => {
-        setShowHomeOption(false);
+        closeHomeOption();
     };
 
     const toggleHomeModeDetail = () => {
@@ -305,63 +331,36 @@ export default function LocationSearchPanel({
     };
 
     return (
-        <section className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <div className="flex min-h-[40px] items-center justify-between">
-                <p className="text-sm font-semibold text-gray-700">
-                    회사 위치를 설정하고 원하는 방식에 따라 매물을 찾아보세요
-                </p>
+        <section className="space-y-3">
+            {showLocationOption && (
+                <div className="grid min-h-[108px] grid-cols-[minmax(0,0.5fr)_400px_minmax(0,0.5fr)] items-stretch gap-3">
+                    <div className="min-w-0">
+                        <CompanyCard
+                            selectedCompany={selectedCompany}
+                            showCompanySearch={showCompanySearch}
+                            onClick={handleClickCompany}
+                        />
+                    </div>
 
-                <button
-                    type="button"
-                    onClick={() => setIsHomeSearchPanelOpen((prev) => !prev)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-100"
-                    aria-label={
-                        isHomeSearchPanelOpen
-                            ? "위치 설정 패널 접기"
-                            : "위치 설정 패널 펼치기"
-                    }
-                >
-                    {isHomeSearchPanelOpen ? (
-                        <ChevronUp size={17} />
-                    ) : (
-                        <ChevronDown size={17} />
-                    )}
-                </button>
-            </div>
+                    <CommuteRouteCard
+                        selectedCompany={selectedCompany}
+                        homeMode={homeMode}
+                        commuteTime="28분"
+                        commuteDistance="12.4km"
+                    />
 
-            {isHomeSearchPanelOpen && (
-                <div className="mt-3 pb-2">
-                    {showLocationOption && (
-                        <div className="grid grid-cols-2 gap-4 pb-1">
-                            <CompanyCard
-                                selectedCompany={selectedCompany}
-                                showCompanySearch={showCompanySearch}
-                                setShowCompanySearch={setShowCompanySearch}
-                                setShowLocationOption={setShowLocationOption}
-                                setShowHomeOption={setShowHomeOption}
-                                setShowHomeFilters={setShowHomeFilters}
-                                setHomeMode={setHomeMode}
-                                setOpenFilterMenu={setOpenFilterMenu}
-                                setShowRoomList={setShowRoomList}
-                                setPlaces={setPlaces}
-                                setKeyword={setKeyword}
-                                setHasSearched={setHasSearched}
-                                setIsEditingCompany={setIsEditingCompany}
-                                inputRef={inputRef}
-                                clearRoomClusters={clearRoomClusters}
-                                confirmCompany={confirmCompany}
-                                previousCompanyRef={previousCompanyRef}
-                                onOpenCompanySearch={handleOpenCompanySearch}
-                            />
+                    <div className="min-w-0">
+                        <HomeCard
+                            onClick={handleClickHome}
+                            homeMode={homeMode}
+                            showHomeOption={showHomeOption}
+                        />
+                    </div>
+                </div>
+            )}
 
-                            <HomeCard
-                                onClick={handleClickHome}
-                                homeMode={homeMode}
-                                showHomeOption={showHomeOption}
-                            />
-                        </div>
-                    )}
-
+            {isHomeSearchPanelOpen && (showCompanySearch || showHomeOption || homeMode) && (
+                <div className="space-y-3">
                     {showCompanySearch && (
                         <CompanySearchPanel
                             inputRef={inputRef}
@@ -380,42 +379,38 @@ export default function LocationSearchPanel({
 
                     {showHomeOption && (
                         <HomeSearchModePanel
-                            onSelectMode={handleSelectMode}
+                            onSelectMode={handleSelectHomeMode}
                             onClose={handleCloseHomeOption}
                         />
                     )}
 
                     {homeMode && (
-                        <div className="mt-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                        <div className="mt-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
                             {homeMode !== "condition" && (
                                 <div className="mb-3 flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="text-base font-extrabold text-gray-900">
-                                        {HOME_MODE_TEXT[homeMode].title}
-                                    </p>
+                                    <div>
+                                        <p className="text-base font-extrabold text-gray-900">
+                                            {HOME_MODE_TEXT[homeMode].title}
+                                        </p>
 
-                                    <p className="mt-1 text-xs font-medium text-gray-500">
-                                        {HOME_MODE_TEXT[homeMode].description}
-                                    </p>
-                                </div>
+                                        <p className="mt-1 text-xs font-medium text-gray-500">
+                                            {HOME_MODE_TEXT[homeMode].description}
+                                        </p>
+                                    </div>
 
-                                <button
-                                    type="button"
-                                    onClick={toggleHomeModeDetail}
-                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
-                                    aria-label={
-                                        isHomeModeDetailOpen
-                                            ? `${HOME_MODE_TEXT[homeMode].title} 세부 옵션 접기`
-                                            : `${HOME_MODE_TEXT[homeMode].title} 세부 옵션 펼치기`
-                                    }
-                                    aria-expanded={isHomeModeDetailOpen}
-                                >
-                                    {isHomeModeDetailOpen ? (
-                                        <ChevronUp size={18} strokeWidth={2.4} />
-                                    ) : (
-                                        <ChevronDown size={18} strokeWidth={2.4} />
-                                    )}
-                                </button>
+                                    <button
+                                        type="button"
+                                        onClick={toggleHomeModeDetail}
+                                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                                        aria-label={`${HOME_MODE_TEXT[homeMode].title} 세부 옵션 ${isHomeModeDetailOpen ? "접기" : "열기"}`}
+                                        aria-expanded={isHomeModeDetailOpen}
+                                    >
+                                        {isHomeModeDetailOpen ? (
+                                            <ChevronUp size={18} strokeWidth={2.4} />
+                                        ) : (
+                                            <ChevronDown size={18} strokeWidth={2.4} />
+                                        )}
+                                    </button>
                                 </div>
                             )}
 
@@ -468,18 +463,18 @@ export default function LocationSearchPanel({
                                     </h3>
 
                                     <p className="mt-1 text-sm text-gray-500">
-                                        왼쪽 관심 매물 패널에서 비교할 매물을 선택한 뒤 분석 리포트를 생성하세요.
+                                        왼쪽 관심 매물 패널에서 비교할 매물을 선택하면 분석 리포트를 확인할 수 있어요.
                                     </p>
 
                                     {compareReport ? (
-                                        <div className="mt-4 max-h-[260px] overflow-y-auto whitespace-pre-line rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-700">
+                                        <div className="mt-4 max-h-65 overflow-y-auto whitespace-pre-line rounded-xl bg-gray-50 p-4 text-sm leading-7 text-gray-700">
                                             {compareReport}
                                         </div>
                                     ) : (
                                         <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
                                             아직 생성된 분석 리포트가 없습니다.
                                             <br />
-                                            관심 매물 2개 이상을 선택한 뒤 리포트를 생성하면 이 영역에 표시됩니다.
+                                            관심 매물 2개 이상을 선택하고 리포트를 생성하면 이 영역에 표시됩니다.
                                         </div>
                                     )}
                                 </div>
@@ -488,21 +483,20 @@ export default function LocationSearchPanel({
                             {homeMode === "localReview" && isHomeModeDetailOpen && (
                                 <div className="rounded-2xl border border-gray-200 bg-white p-4">
                                     <h3 className="text-base font-bold text-gray-900">
-                                        지역별 거주자/재직자 후기
+                                        지역권 거주자 후기
                                     </h3>
 
                                     <p className="mt-1 text-sm text-gray-500">
-                                        지역별 생활·출퇴근 후기를 확인할 수 있습니다.
+                                        지역권 생활과 출퇴근 후기를 확인할 수 있습니다.
                                     </p>
 
                                     <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
-                                        지역별 거주자/재직자 후기 기능은 추후 연결 예정입니다.
+                                        지역권 거주자 후기 기능은 추후 연결 예정입니다.
                                     </div>
                                 </div>
                             )}
                         </div>
                     )}
-
                 </div>
             )}
         </section>

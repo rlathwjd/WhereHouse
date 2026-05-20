@@ -1,6 +1,5 @@
-import { House, Plus } from "lucide-react";
+import { Check, ChevronRight, House, Plus } from "lucide-react";
 
-import { HOME_MODE_TEXT } from "@/constants/homeMode";
 import type { HomeMode } from "@/types/map";
 
 type HomeCardProps = {
@@ -9,42 +8,78 @@ type HomeCardProps = {
     showHomeOption: boolean;
 };
 
+const HOME_MODE_STATUS_TEXT: Record<Exclude<HomeMode, null>, string> = {
+    condition: "조건으로 찾는 중",
+    localReview: "거주자/재직자 후기 보는 중",
+    favoriteCompare: "관심 매물 비교 중",
+};
+
 export default function HomeCard({
     onClick,
     homeMode,
     showHomeOption,
 }: HomeCardProps) {
-    const selectedHomeMode = homeMode ? HOME_MODE_TEXT[homeMode] : null;
-
     return (
-        <div className="flex h-full items-center rounded-2xl border border-[#FDE8A8] bg-[#FFFBEB] p-5 text-[#374151] shadow-sm transition-transform duration-300">
-            <div className="flex w-full items-center justify-between gap-4">
-                <div className="flex min-w-0 flex-1 items-center gap-4">
-                    <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border border-[#F59E0B] bg-white">
-                        <House size={32} className="text-[#F59E0B]" strokeWidth={2.4} />
+        <div className="relative flex h-full min-h-[108px] items-center rounded-2xl border border-[#FDE8A8] bg-[#FFFBEB] px-6 py-4 text-[#374151] shadow-sm">
+            {homeMode && (
+                <span className="absolute right-4 top-4 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#F59E0B] leading-none">
+                    <Check
+                        size={12}
+                        className="translate-y-[0.5px] text-white"
+                        strokeWidth={3.2}
+                    />
+                </span>
+            )}
+
+            <button
+                type="button"
+                onClick={onClick}
+                className="flex h-full w-full items-center justify-between gap-4 text-left"
+            >
+                <span className="flex min-w-0 flex-1 items-center gap-5">
+                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-[#F59E0B] bg-white">
+                        <House
+                            size={30}
+                            className="text-[#F59E0B]"
+                            strokeWidth={2.4}
+                        />
                     </span>
 
                     <span className="min-w-0">
-                        <span className="block text-xl font-bold text-[#111827]">
+                        <span className="block truncate text-xl font-extrabold text-[#111827]">
                             집
                         </span>
 
-                        <span className="mt-2 block text-xs font-medium leading-6 text-[#4B5563]">
-                            원하는 조건으로 맞춤 매물을 찾아보세요.
+                        <span className="mt-2 flex min-w-0 items-center gap-1.5 text-sm font-semibold text-gray-600">
+                            {homeMode ? (
+                                <span className="truncate">
+                                    {HOME_MODE_STATUS_TEXT[homeMode]}
+                                </span>
+                            ) : (
+                                <span className="truncate">
+                                    원하는 조건으로 맞춤 매물을 찾아보세요.
+                                </span>
+                            )}
                         </span>
                     </span>
-                </div>
+                </span>
 
-                {!showHomeOption && (
-                    <button
-                        type="button"
-                        onClick={onClick}
-                        className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-[#F59E0B] bg-white px-3 text-sm font-bold text-[#B45309] transition hover:bg-[#FEF3C7]"
-                    >
-                        {selectedHomeMode ? "찾기 방식 변경" : <Plus size={18} strokeWidth={2.6} />}
-                    </button>
-                )}
-            </div>
+                <span className="flex shrink-0 items-center gap-2">
+                    {!homeMode && (
+                        showHomeOption ? (
+                            <ChevronRight
+                                size={22}
+                                className="shrink-0 text-[#374151]"
+                                strokeWidth={2.3}
+                            />
+                        ) : (
+                            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[#F59E0B] bg-white text-[#F59E0B] shadow-sm">
+                                <Plus size={24} strokeWidth={2.5} />
+                            </span>
+                        )
+                    )}
+                </span>
+            </button>
         </div>
     );
 }

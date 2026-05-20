@@ -11,21 +11,8 @@ const outfit = localFont({
 
 export default function Home() {
   return (
-    <main className="min-h-screen w-full bg-gray-50 px-10 py-8">
-      <h1
-        onClick={() => window.location.reload()}
-        className={`${outfit.className} text-5xl font-bold tracking-tight`}
-      >
-        WhereHouse
-      </h1>
-
-      <p className="mt-4 text-lg font-semibold text-gray-600">
-        사회초년생을 위한 생활권 기반 자취방 탐색 서비스
-      </p>
-
-      <div className="mt-4">
-        <KakaoMap />
-      </div>
+    <main className="h-dvh w-full overflow-hidden bg-gray-50 px-6 py-4">
+      <KakaoMap titleClassName={outfit.className} />
     </main>
   );
 }
